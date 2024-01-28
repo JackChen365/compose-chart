@@ -18,10 +18,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.BarChart
+import me.jack.compose.chart.component.BarStyle
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedCrossAxisOverlayContentMeasurePolicy
 import me.jack.compose.chart.measure.fixedMainAxisContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
@@ -46,10 +48,20 @@ class BarDemos {
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
                 }
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             BarChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = fixedMainAxisContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
+                chartDataset = barDataset,
+                tapGestures = TapGestures<BarData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            BarChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx()),
+                barStyle = BarStyle.Stack,
                 chartDataset = barDataset,
                 tapGestures = TapGestures<BarData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()

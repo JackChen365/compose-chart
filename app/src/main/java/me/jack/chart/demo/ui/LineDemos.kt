@@ -47,18 +47,22 @@ class LineDemos {
         }
         val context = LocalContext.current
         Column {
-            LineChart(modifier = Modifier.height(240.dp),
+            LineChart(
+                modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
                 chartDataset = dataset,
                 tapGestures = TapGestures<LineData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
-                })
-            CurveLineChart(modifier = Modifier.height(240.dp),
+                }
+            )
+            CurveLineChart(
+                modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
                 chartDataset = dataset,
                 tapGestures = TapGestures<LineData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
-                })
+                }
+            )
         }
     }
 
