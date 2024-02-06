@@ -2,6 +2,7 @@ package me.jack.chart.demo.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -14,17 +15,22 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import me.jack.compose.chart.component.ChartAverageAcrossRanksComponent
+import me.jack.compose.chart.component.ChartBorderComponent
+import me.jack.compose.chart.component.ChartGridDividerComponent
+import me.jack.compose.chart.component.ChartIndicatorComponent
 import me.jack.compose.chart.component.CurveLineChart
 import me.jack.compose.chart.component.LineChart
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
-import me.jack.compose.chart.measure.fixedCrossAxisOverlayContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedOverlayContentMeasurePolicy
+import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SimpleLineData
 import me.jack.compose.chart.model.chartDataGroup
-import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.scope.SingleChartScope
+import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
 
@@ -49,15 +55,16 @@ class LineDemos {
         Column {
             LineChart(
                 modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(32.dp.toPx()),
                 chartDataset = dataset,
                 tapGestures = TapGestures<LineData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
                 }
             )
+            Spacer(modifier = Modifier.height(8.dp))
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(32.dp.toPx()),
                 chartDataset = dataset,
                 tapGestures = TapGestures<LineData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
@@ -70,11 +77,47 @@ class LineDemos {
     @Composable
     fun LineDataAnimationPreview() {
         val scope = rememberCoroutineScope()
+        val context = LocalContext.current
+        Column {
+            LineChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(32.dp.toPx()),
+                chartDataset = animatableDataset(scope),
+                tapGestures = TapGestures<LineData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }
+            ) {
+                LaunchAnimation(scope)
+                ChartBorderComponent()
+                ChartGridDividerComponent()
+                ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+                ChartIndicatorComponent()
+                ChartContent()
+            }
+            CurveLineChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(32.dp.toPx()),
+                chartDataset = animatableDataset(scope),
+                tapGestures = TapGestures<LineData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }
+            ) {
+                LaunchAnimation(scope)
+                ChartBorderComponent()
+                ChartGridDividerComponent()
+                ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+                ChartIndicatorComponent()
+                ChartContent()
+            }
+        }
+    }
+
+    private fun animatableDataset(scope: CoroutineScope): ChartDataset<LineData> {
         val animatableDataset = chartDataGroup<LineData> {
             repeat(3) {
                 val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
                 animatableDataset(scope, "Group:$it") {
-                    items(50) {
+                    items(5000) {
                         SimpleLineData(
                             value = Random.nextInt(30, 100).toFloat(), color = groupColor
                         )
@@ -82,35 +125,22 @@ class LineDemos {
                 }
             }
         }
+        return animatableDataset
+    }
+
+    @Composable
+    private fun LineChartScope.LaunchAnimation(
+        scope: CoroutineScope
+    ) {
         SideEffect {
             scope.launch {
                 while (true) {
                     delay(1000L)
-                    animatableDataset.forEach { _, barData ->
-                        barData.value = 10 + Random.nextInt(10, 50).toFloat()
+                    fastForEach { _, current ->
+                        current.value = 10 + Random.nextInt(10, 50).toFloat()
                     }
                 }
             }
         }
-        val context = LocalContext.current
-        Column {
-            LineChart(
-                modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset,
-                tapGestures = TapGestures<LineData>().onTap { currentItem ->
-                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
-                }
-            )
-            CurveLineChart(
-                modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx()),
-                chartDataset = animatableDataset,
-                tapGestures = TapGestures<LineData>().onTap { currentItem ->
-                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
-                }
-            )
-        }
     }
-
 }

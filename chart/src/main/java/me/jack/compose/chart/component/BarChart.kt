@@ -10,7 +10,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
-import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
@@ -21,16 +20,12 @@ import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.computeGroupTotalValues
-import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.forEachGroupIndexed
 import me.jack.compose.chart.model.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.chartChildOffsets
-import me.jack.compose.chart.scope.chartChildSize
-import me.jack.compose.chart.scope.chartGroupOffsets
-import me.jack.compose.chart.scope.getChartGroupOffsets
+import me.jack.compose.chart.scope.fastForEach
+import me.jack.compose.chart.scope.fastForEachByIndex
 import me.jack.compose.chart.scope.isHorizontal
+import me.jack.compose.chart.scope.isLastGroupIndex
 
 enum class BarStyle {
     Normal, Stack
@@ -86,7 +81,10 @@ fun BarChart(
                 BubbleMarkerComponent()
             }
 
-            BarStyle.Stack -> BarStackComponent()
+            BarStyle.Stack -> {
+                BarStackComponent()
+                BubbleMarkerComponent()
+            }
         }
     }
 }
@@ -100,44 +98,21 @@ fun SingleChartScope<BarData>.BarComponent() {
         modifier = Modifier.fillMaxSize()
     ) {
         val barItemSize = size.crossAxis / maxValue
-        val scrollState = chartContext.requireChartScrollState
-        chartDataset.forEachGroupIndexed { groupIndex, groupName ->
-            var offset: Float = -scrollState.firstVisibleItemOffset + getChartGroupOffsets(groupIndex).mainAxis
-            chartDataset.forEach(
-                chartGroup = groupName,
-                start = scrollState.firstVisibleItem,
-                end = scrollState.lastVisibleItem
-            ) { barData ->
+        fastForEach { _, barData ->
+            clickable {
                 if (isHorizontal) {
-                    clickableRect(
-                        topLeft = Offset(offset, 0f),
-                        size = Size(chartChildSize.mainAxis, size.height),
-                        focusPoint = Offset(
-                            x = offset + chartChildSize.mainAxis / 2,
-                            y = size.height - barItemSize * barData.value
-                        )
-                    )
                     drawRect(
                         color = barData.color whenPressedAnimateTo barData.color.copy(alpha = 0.4f),
-                        topLeft = Offset(offset, size.height - barItemSize * barData.value),
-                        size = Size(chartChildSize.mainAxis, size.height)
+                        topLeft = Offset(currentLeftTopOffset.x, size.height - barItemSize * barData.value),
+                        size = Size(childSize.mainAxis, size.crossAxis)
                     )
                 } else {
-                    clickableRect(
-                        topLeft = Offset(0f, offset),
-                        size = Size(size.width, chartChildSize.mainAxis),
-                        focusPoint = Offset(
-                            x = barItemSize * barData.value,
-                            y = offset
-                        )
-                    )
                     drawRect(
                         color = barData.color whenPressedAnimateTo barData.color.copy(alpha = 0.4f),
-                        topLeft = Offset(0f, offset),
-                        Size(barItemSize * barData.value, chartChildSize.mainAxis)
+                        topLeft = Offset(0f, currentLeftTopOffset.y),
+                        size = Size(barItemSize * barData.value, childSize.mainAxis)
                     )
                 }
-                offset += chartGroupOffsets.mainAxis
             }
         }
     }
@@ -151,39 +126,25 @@ fun SingleChartScope<BarData>.BarStackComponent() {
     val maxValue = remember(sumValueSet) {
         sumValueSet.maxOf { it }
     }
-    ChartCanvas(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    ChartCanvas(modifier = Modifier.fillMaxSize()) {
+        var offset = 0f
         val barItemSize = size.crossAxis / maxValue
-        val scrollState = chartContext.requireChartScrollState
-        var crossAxisOffset: Float = -scrollState.firstVisibleItemOffset
-        for (visibleItem in scrollState.currentVisibleRange) {
-            var mainAxisOffset = 0f
-            chartDataset.forEachGroup { groupName ->
-                val barData = chartDataset[groupName][visibleItem]
-                val (topLeft, size) = if (isHorizontal) {
-                    val topLeft = Offset(crossAxisOffset, size.height - barItemSize * barData.value - mainAxisOffset)
-                    val size = Size(chartChildSize.mainAxis, barItemSize * barData.value)
-                    topLeft to size
-                } else {
-                    val topLeft = Offset(mainAxisOffset, crossAxisOffset)
-                    val size = Size(barItemSize * barData.value, chartChildSize.mainAxis)
-                    topLeft to size
-                }
-                clickableRect(
-                    topLeft = topLeft,
-                    size = size,
-                    focusPoint = Offset(
-                        x = topLeft.x + chartChildSize.mainAxis / 2,
-                        y = topLeft.y
-                    ),
-                    currentItem = barData,
-                    index = visibleItem
-                )
-                drawRect(color = barData.color, topLeft = topLeft, size = size)
-                mainAxisOffset += barItemSize * barData.value
+        fastForEachByIndex { _, barData ->
+            val (topLeft, rectSize) = if (isHorizontal) {
+                Offset(
+                    currentLeftTopOffset.x, size.height - offset - barItemSize * barData.value
+                ) to Size(childSize.mainAxis, barItemSize * barData.value)
+            } else {
+                Offset(offset, currentLeftTopOffset.y) to
+                        Size(barItemSize * barData.value, childSize.mainAxis)
             }
-            crossAxisOffset += chartChildOffsets.mainAxis
+            clickableRect(currentLeftTopOffset, childSize)
+            drawRect(
+                color = barData.color whenPressedAnimateTo barData.color.copy(alpha = 0.4f),
+                topLeft = topLeft,
+                size = rectSize
+            )
+            offset = if (isLastGroupIndex()) 0f else offset + barItemSize * barData.value
         }
     }
 }
@@ -191,7 +152,7 @@ fun SingleChartScope<BarData>.BarStackComponent() {
 @Composable
 fun SingleChartScope<BarData>.BubbleMarkerComponent() {
     val pressInteraction = chartContext.pressInteractionState.value.asPressInteraction<BarData>() ?: return
-    val currentItem = pressInteraction.currentItem
+    val currentGroupItems = pressInteraction.currentGroupItems
     val drawElement = pressInteraction.drawElement
     if (drawElement is DrawElement.Rect) {
         MarkerDashLineComponent(
@@ -203,7 +164,7 @@ fun SingleChartScope<BarData>.BubbleMarkerComponent() {
             leftTop = drawElement.topLeft,
             size = drawElement.size,
             focusPoint = drawElement.focusPoint,
-            displayInfo = "(" + currentItem.value.toString() + ")"
+            displayInfo = "(" + currentGroupItems.joinToString { it.value.toString() } + ")"
         )
     }
 }

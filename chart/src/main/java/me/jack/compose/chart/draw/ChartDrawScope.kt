@@ -1,6 +1,5 @@
 package me.jack.compose.chart.draw
 
-import androidx.annotation.FloatRange
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -19,7 +18,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import me.jack.compose.chart.animation.ChartAnimatableState
 import me.jack.compose.chart.animation.ChartColorAnimatableState
 import me.jack.compose.chart.animation.ChartFloatAnimatableState
@@ -48,6 +46,7 @@ import me.jack.compose.chart.interaction.ChartPressInteraction
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
+import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import me.jack.compose.chart.scope.SingleChartScope
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -55,18 +54,22 @@ import kotlin.math.sqrt
 
 @Composable
 fun <T> SingleChartScope<T>.ChartCanvas(
-    modifier: Modifier = Modifier, onDraw: ChartDrawScope<T>.() -> Unit
+    modifier: Modifier = Modifier,
+    onDraw: ChartDrawScope<T>.() -> Unit
 ) {
     var chartDrawScope: ChartDrawScope<T>? = remember { null }
     val scope = rememberCoroutineScope()
-    Spacer(modifier = modifier.drawBehind {
-        if (null == chartDrawScope) {
-            chartDrawScope = ChartDrawScope(
-                singleChartScope = this@ChartCanvas, drawScope = this, scope = scope, tapGestures = tapGestures
-            )
-        }
-        onDraw.invoke(checkNotNull(chartDrawScope).also { it.reset() })
-    })
+    Spacer(
+        modifier = modifier
+            .drawBehind {
+                if (null == chartDrawScope) {
+                    chartDrawScope = ChartDrawScope(
+                        singleChartScope = this@ChartCanvas, drawScope = this, scope = scope, tapGestures = tapGestures
+                    )
+                }
+                onDraw.invoke(checkNotNull(chartDrawScope).also { it.reset() })
+            }
+    )
 }
 
 class ChartDrawScope<T>(
@@ -74,11 +77,11 @@ class ChartDrawScope<T>(
     private val drawScope: DrawScope,
     private val scope: CoroutineScope,
     private val tapGestures: TapGestures<T>
-) : DrawScope by drawScope {
+) : DrawScope by drawScope, ChartDatasetAccessScope by ChartDatasetAccessScopeInstance {
     val chartContext: ChartContext = singleChartScope.chartContext
     val chartDataset: ChartDataset<T> = singleChartScope.chartDataset
     private val traceableDrawScope = TraceableDrawScope(this).also { drawScope ->
-        drawScope.onDrawElementEvaluated { drawElement, index, currentItem ->
+        drawScope.onDrawElementUpdated { drawElement, index, currentItem ->
             currentDrawElement = drawElement
             trackDrawElementInteraction(drawElement, currentItem, index)
         }
@@ -94,20 +97,7 @@ class ChartDrawScope<T>(
     fun clickableRect(
         topLeft: Offset,
         size: Size,
-        focusPoint: Offset = Offset.Unspecified,
-        currentItem: T,
-        index: Int
-    ) {
-        val drawElement: DrawElement.Rect = getCachedDrawElement()
-        drawElement.topLeft = topLeft
-        drawElement.size = size
-        drawElement.focusPoint = focusPoint
-        currentDrawElement = drawElement
-        trackDrawElementInteraction(drawElement, currentItem, index)
-    }
-
-    fun ChartDatasetAccessScope.clickableRect(
-        topLeft: Offset, size: Size, focusPoint: Offset = Offset.Unspecified
+        focusPoint: Offset = Offset.Unspecified
     ) {
         val drawElement: DrawElement.Rect = getCachedDrawElement()
         drawElement.topLeft = topLeft
@@ -123,9 +113,8 @@ class ChartDrawScope<T>(
         block: TraceableDrawScope<T>.() -> Unit
     ) {
         traceableDrawScope.trackChartData(currentItem, index)
-        traceableDrawScope.setEvaluateDrawElement(true)
+        // invoke twice, first we update the draw element, and than the second time we draw the element.
         block.invoke(traceableDrawScope)
-        traceableDrawScope.setEvaluateDrawElement(false)
         block.invoke(traceableDrawScope)
     }
 
@@ -133,11 +122,59 @@ class ChartDrawScope<T>(
         block: TraceableDrawScope<T>.() -> Unit
     ) {
         traceableDrawScope.trackChartData(currentItem(), index)
-        traceableDrawScope.setEvaluateDrawElement(true)
+        // invoke twice, first we update the draw element, and than the second time we draw the element.
         block.invoke(traceableDrawScope)
-        traceableDrawScope.setEvaluateDrawElement(false)
         block.invoke(traceableDrawScope)
     }
+
+    val currentLeftTopOffset: Offset
+        get() {
+            return with(singleChartScope) {
+                with(singleChartScope.contentMeasurePolicy) {
+                    childLeftTop(groupCount, groupIndex, index)
+                }
+            }
+        }
+
+    val nextLeftTopOffset: Offset
+        get() {
+            return with(singleChartScope) {
+                with(singleChartScope.contentMeasurePolicy) {
+                    childLeftTop(groupCount, groupIndex, index + 1)
+                }
+            }
+        }
+
+    val childCenterOffset: Offset
+        get() {
+            return with(singleChartScope.contentMeasurePolicy) {
+                Offset(
+                    x = currentLeftTopOffset.x + childSize.width / 2,
+                    y = currentLeftTopOffset.y + childSize.height / 2
+                )
+            }
+        }
+
+    val nextChildCenterOffset: Offset
+        get() {
+            return with(singleChartScope.contentMeasurePolicy) {
+                Offset(
+                    x = nextLeftTopOffset.x + childSize.width / 2,
+                    y = nextLeftTopOffset.y + childSize.height / 2
+                )
+            }
+        }
+
+    val childSize: Size
+        get() = singleChartScope.contentMeasurePolicy.childSize
+
+    val childOffsets: Offset
+        get() = with(singleChartScope.contentMeasurePolicy) {
+            Offset(
+                x = childSize.width + childDividerSize,
+                y = childSize.height + childDividerSize
+            )
+        }
 
     infix fun Color.whenPressed(targetValue: Color): Color {
         return valueIf(targetValue = targetValue, condition = ::isPressed)
@@ -301,10 +338,23 @@ class ChartDrawScope<T>(
 class TraceableDrawScope<T>(
     private val drawScope: ChartDrawScope<T>
 ) : DrawScope by drawScope {
-    private var onDrawElementEvaluated: ((drawElement: DrawElement, index: Int, currentItem: T) -> Unit)? = null
-    private var isEvaluateDrawElement = false
+    private var onDrawElementUpdated: ((drawElement: DrawElement, index: Int, currentItem: T) -> Unit)? = null
+    private var isCurrentDrawElementUpdated = false
     private var currentItem: T? = null
     private var currentIndex: Int = 0
+
+    val currentLeftTopOffset: Offset
+        get() = with(drawScope) { currentLeftTopOffset }
+
+    val nextLeftTopOffset: Offset
+        get() = with(drawScope) { nextLeftTopOffset }
+
+    val childCenterOffset: Offset
+        get() = with(drawScope) { childCenterOffset }
+
+    val childSize: Size
+        get() = with(drawScope) { childSize }
+
     infix fun Color.whenPressed(targetValue: Color): Color {
         return with(drawScope) { whenPressed(targetValue) }
     }
@@ -329,10 +379,6 @@ class TraceableDrawScope<T>(
         return with(drawScope) { whenPressedAnimateTo(targetValue) }
     }
 
-    fun setEvaluateDrawElement(isEvaluateDrawElement: Boolean) {
-        this.isEvaluateDrawElement = isEvaluateDrawElement
-    }
-
     override fun drawRect(
         brush: Brush,
         topLeft: Offset,
@@ -342,14 +388,17 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (!isEvaluateDrawElement) {
-            val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
-            rectDrawElement.topLeft = topLeft
-            rectDrawElement.size = size
-            onDrawElementEvaluated?.invoke(rectDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawRect(brush, topLeft, size, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
+                rectDrawElement.topLeft = topLeft
+                rectDrawElement.size = size
+                onDrawElementUpdated?.invoke(rectDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawRect(brush, topLeft, size, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawRect(
@@ -361,15 +410,18 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
-            rectDrawElement.color = color
-            rectDrawElement.topLeft = topLeft
-            rectDrawElement.size = size
-            onDrawElementEvaluated?.invoke(rectDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawRect(color, topLeft, size, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val rectDrawElement: DrawElement.Rect = getCachedDrawElement()
+                rectDrawElement.color = color
+                rectDrawElement.topLeft = topLeft
+                rectDrawElement.size = size
+                onDrawElementUpdated?.invoke(rectDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawRect(color, topLeft, size, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawCircle(
@@ -381,14 +433,17 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
-            circleDrawElement.radius = radius
-            circleDrawElement.center = center
-            onDrawElementEvaluated?.invoke(circleDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawCircle(brush, radius, center, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
+                circleDrawElement.radius = radius
+                circleDrawElement.center = center
+                onDrawElementUpdated?.invoke(circleDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawCircle(brush, radius, center, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawCircle(
@@ -400,15 +455,18 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
-            circleDrawElement.color = color
-            circleDrawElement.radius = radius
-            circleDrawElement.center = center
-            onDrawElementEvaluated?.invoke(circleDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawCircle(color, radius, center, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val circleDrawElement: DrawElement.Circle = getCachedDrawElement()
+                circleDrawElement.color = color
+                circleDrawElement.radius = radius
+                circleDrawElement.center = center
+                onDrawElementUpdated?.invoke(circleDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawCircle(color, radius, center, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawOval(
@@ -420,14 +478,17 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
-            ovalDrawElement.topLeft = topLeft
-            ovalDrawElement.size = size
-            onDrawElementEvaluated?.invoke(ovalDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawOval(brush, topLeft, size, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
+                ovalDrawElement.topLeft = topLeft
+                ovalDrawElement.size = size
+                onDrawElementUpdated?.invoke(ovalDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawOval(brush, topLeft, size, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawOval(
@@ -439,15 +500,18 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
-            ovalDrawElement.color = color
-            ovalDrawElement.topLeft = topLeft
-            ovalDrawElement.size = size
-            onDrawElementEvaluated?.invoke(ovalDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawOval(color, topLeft, size, alpha, style, colorFilter, blendMode)
-        }
+        drawElement(
+            onUpdateDrawElement = {
+                val ovalDrawElement: DrawElement.Oval = getCachedDrawElement()
+                ovalDrawElement.color = color
+                ovalDrawElement.topLeft = topLeft
+                ovalDrawElement.size = size
+                onDrawElementUpdated?.invoke(ovalDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawOval(color, topLeft, size, alpha, style, colorFilter, blendMode)
+            }
+        )
     }
 
     override fun drawArc(
@@ -462,32 +526,35 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
-            arcDrawElement.color = color
-            arcDrawElement.startAngle = startAngle
-            arcDrawElement.startAngle = startAngle
-            arcDrawElement.leftTop = topLeft
-            arcDrawElement.size = size
-            arcDrawElement.sweepAngle = sweepAngle
-            if (style is Stroke) {
-                arcDrawElement.strokeWidth = style.width
+        drawElement(
+            onUpdateDrawElement = {
+                val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
+                arcDrawElement.color = color
+                arcDrawElement.startAngle = startAngle
+                arcDrawElement.startAngle = startAngle
+                arcDrawElement.leftTop = topLeft
+                arcDrawElement.size = size
+                arcDrawElement.sweepAngle = sweepAngle
+                if (style is Stroke) {
+                    arcDrawElement.strokeWidth = style.width
+                }
+                onDrawElementUpdated?.invoke(arcDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawArc(
+                    color,
+                    startAngle,
+                    sweepAngle,
+                    useCenter,
+                    topLeft,
+                    size,
+                    alpha,
+                    style,
+                    colorFilter,
+                    blendMode
+                )
             }
-            onDrawElementEvaluated?.invoke(arcDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawArc(
-                color,
-                startAngle,
-                sweepAngle,
-                useCenter,
-                topLeft,
-                size,
-                alpha,
-                style,
-                colorFilter,
-                blendMode
-            )
-        }
+        )
     }
 
     override fun drawArc(
@@ -502,36 +569,54 @@ class TraceableDrawScope<T>(
         colorFilter: ColorFilter?,
         blendMode: BlendMode
     ) {
-        if (isEvaluateDrawElement) {
-            val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
-            arcDrawElement.startAngle = startAngle
-            arcDrawElement.leftTop = topLeft
-            arcDrawElement.size = size
-            arcDrawElement.sweepAngle = sweepAngle
-            if (style is Stroke) {
-                arcDrawElement.strokeWidth = style.width
+        drawElement(
+            onUpdateDrawElement = {
+                val arcDrawElement: DrawElement.Arc = getCachedDrawElement()
+                arcDrawElement.startAngle = startAngle
+                arcDrawElement.leftTop = topLeft
+                arcDrawElement.size = size
+                arcDrawElement.sweepAngle = sweepAngle
+                if (style is Stroke) {
+                    arcDrawElement.strokeWidth = style.width
+                }
+                onDrawElementUpdated?.invoke(arcDrawElement, currentIndex, checkNotNull(currentItem))
+            },
+            onDraw = {
+                drawScope.drawArc(
+                    brush,
+                    startAngle,
+                    sweepAngle,
+                    useCenter,
+                    topLeft,
+                    size,
+                    alpha,
+                    style,
+                    colorFilter,
+                    blendMode
+                )
             }
-            onDrawElementEvaluated?.invoke(arcDrawElement, currentIndex, checkNotNull(currentItem))
-        } else {
-            drawScope.drawArc(
-                brush,
-                startAngle,
-                sweepAngle,
-                useCenter,
-                topLeft,
-                size,
-                alpha,
-                style,
-                colorFilter,
-                blendMode
-            )
+        )
+    }
+
+    private inline fun drawElement(
+        onUpdateDrawElement: () -> Unit,
+        onDraw: () -> Unit
+    ) {
+        try {
+            if (!isCurrentDrawElementUpdated) {
+                onUpdateDrawElement()
+            } else {
+                onDraw()
+            }
+        } finally {
+            isCurrentDrawElementUpdated = !isCurrentDrawElementUpdated
         }
     }
 
-    fun onDrawElementEvaluated(
-        onDrawElementEvaluated: (drawElement: DrawElement, index: Int, T) -> Unit
+    fun onDrawElementUpdated(
+        onDrawElementUpdated: (drawElement: DrawElement, index: Int, T) -> Unit
     ) {
-        this.onDrawElementEvaluated = onDrawElementEvaluated
+        this.onDrawElementUpdated = onDrawElementUpdated
     }
 
     fun trackChartData(currentItem: T, index: Int) {

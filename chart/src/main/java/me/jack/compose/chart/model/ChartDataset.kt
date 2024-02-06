@@ -10,10 +10,11 @@ import me.jack.compose.chart.animation.colorAnimatableState
 import me.jack.compose.chart.animation.floatAnimatableState
 import me.jack.compose.chart.animation.intAnimatableState
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
-import me.jack.compose.chart.scope.SimpleChartDatasetAccessScope
+import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
+import kotlin.math.max
 import kotlin.math.min
 
 const val SINGLE_GROUP_NAME = "#"
@@ -184,12 +185,12 @@ inline fun <T> ChartDataset<T>.forEach(
     action: ChartDatasetAccessScope.(chartGroup: String, T) -> Unit
 ) {
     forEachGroupIndexed { groupIndex, chartGroup ->
-        SimpleChartDatasetAccessScope.groupIndex = groupIndex
-        SimpleChartDatasetAccessScope.internalChartGroup = chartGroup
+        ChartDatasetAccessScopeInstance.groupIndex = groupIndex
+        ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
         this[chartGroup].forEachIndexed { index, currentItem ->
-            SimpleChartDatasetAccessScope.internalCurrentItem = currentItem
-            SimpleChartDatasetAccessScope.index = index
-            SimpleChartDatasetAccessScope.action(chartGroup, currentItem)
+            ChartDatasetAccessScopeInstance.internalCurrentItem = currentItem
+            ChartDatasetAccessScopeInstance.index = index
+            ChartDatasetAccessScopeInstance.action(chartGroup, currentItem)
         }
     }
 }
@@ -198,12 +199,12 @@ inline fun <T> ChartDataset<T>.forEach(
     chartGroup: String = SINGLE_GROUP_NAME,
     action: ChartDatasetAccessScope.(T) -> Unit
 ) {
-    SimpleChartDatasetAccessScope.internalChartGroup = chartGroup
-    SimpleChartDatasetAccessScope.groupIndex = chartGroups.indexOf(chartGroup)
+    ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
+    ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
     this[chartGroup].forEachIndexed { index, currentItem ->
-        SimpleChartDatasetAccessScope.internalCurrentItem = currentItem
-        SimpleChartDatasetAccessScope.index = index
-        SimpleChartDatasetAccessScope.action(currentItem)
+        ChartDatasetAccessScopeInstance.internalCurrentItem = currentItem
+        ChartDatasetAccessScopeInstance.index = index
+        ChartDatasetAccessScopeInstance.action(currentItem)
     }
 }
 
@@ -216,13 +217,13 @@ inline fun <T> ChartDataset<T>.forEach(
     val dataset = this[chartGroup]
     var index = start
     val dataSize = min(size, end)
-    SimpleChartDatasetAccessScope.internalChartGroup = chartGroup
-    SimpleChartDatasetAccessScope.groupIndex = chartGroups.indexOf(chartGroup)
+    ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
+    ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
     while (index < dataSize) {
         val currentItem = dataset[index]
-        SimpleChartDatasetAccessScope.internalCurrentItem = currentItem
-        SimpleChartDatasetAccessScope.index = index
-        SimpleChartDatasetAccessScope.action(currentItem)
+        ChartDatasetAccessScopeInstance.internalCurrentItem = currentItem
+        ChartDatasetAccessScopeInstance.index = index
+        ChartDatasetAccessScopeInstance.action(currentItem)
         index++
     }
 }
@@ -236,13 +237,13 @@ inline fun <T> ChartDataset<T>.forEachWithNext(
     val dataset = this[chartGroup]
     var index = start
     val dataSize = min(size, end)
-    SimpleChartDatasetAccessScope.internalChartGroup = chartGroup
-    SimpleChartDatasetAccessScope.groupIndex = chartGroups.indexOf(chartGroup)
+    ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
+    ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
     while (index + 1 < dataSize) {
         val currentItem = dataset[index]
-        SimpleChartDatasetAccessScope.internalCurrentItem = currentItem
-        SimpleChartDatasetAccessScope.index = index
-        SimpleChartDatasetAccessScope.action(currentItem, dataset[index + 1])
+        ChartDatasetAccessScopeInstance.internalCurrentItem = currentItem
+        ChartDatasetAccessScopeInstance.index = index
+        ChartDatasetAccessScopeInstance.action(currentItem, dataset[index + 1])
         index++
     }
 }
@@ -283,14 +284,40 @@ inline fun <T> ChartDataset<T>.minOf(
     return minValue
 }
 
+inline fun <T> ChartDataset<T>.maxGroupValueOf(action: (T) -> Float): Float {
+    var maxValue = Float.MIN_VALUE
+    for (index in indices) {
+        var sumValue = 0f
+        forEachGroup { chartGroup ->
+            val item = get(chartGroup)[index]
+            sumValue += action(item)
+        }
+        maxValue = max(maxValue, sumValue)
+    }
+    return maxValue
+}
+
+inline fun <T> ChartDataset<T>.minGroupValueOf(action: (T) -> Float): Float {
+    var minValue = Float.MAX_VALUE
+    for (index in indices) {
+        var sumValue = 0f
+        forEachGroup { chartGroup ->
+            val item = get(chartGroup)[index]
+            sumValue += action(item)
+        }
+        minValue = min(minValue, sumValue)
+    }
+    return minValue
+}
+
 inline fun <T> ChartDataset<T>.computeGroupTotalValues(
     valueProvider: (T) -> Float
 ): List<Float> {
     val sumValueList = mutableListOf<Float>()
-    for (i in 0 until size) {
+    for (index in indices) {
         var sumValue = 0f
         forEachGroup { groupName ->
-            val chartData = get(groupName)[i]
+            val chartData = get(groupName)[index]
             sumValue += valueProvider(chartData)
         }
         sumValueList.add(sumValue)
@@ -304,6 +331,9 @@ interface ChartDataset<T> {
     val groupSize: Int
     val chartGroups: Set<String>
         get() = dataset.keys
+
+    val indices: IntRange
+        get() = 0 until size
 
     operator fun get(key: String): List<T> {
         return dataset[key] ?: emptyList()

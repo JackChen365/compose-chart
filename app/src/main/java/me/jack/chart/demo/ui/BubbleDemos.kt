@@ -1,7 +1,9 @@
 package me.jack.chart.demo.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -13,7 +15,8 @@ import me.jack.compose.chart.component.BubbleChart
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
-import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.SimpleBubbleData
@@ -48,8 +51,17 @@ class BubbleDemos {
         val context = LocalContext.current
         Column {
             BubbleChart(
-                modifier = Modifier.height(360.dp),
-                contentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(32.dp.toPx()),
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedContentMeasurePolicy(32.dp.toPx()),
+                chartDataset = buildChartDataset(),
+                tapGestures = TapGestures<BubbleData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:$currentItem", Toast.LENGTH_SHORT).show()
+                }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            BubbleChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedVerticalContentMeasurePolicy(32.dp.toPx()),
                 chartDataset = buildChartDataset(),
                 tapGestures = TapGestures<BubbleData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:$currentItem", Toast.LENGTH_SHORT).show()

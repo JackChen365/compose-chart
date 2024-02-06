@@ -31,8 +31,6 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
 import androidx.compose.ui.layout.MultiMeasureLayout
 import androidx.compose.ui.layout.Placeable
-import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.layout.SubcomposeMeasureScope
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
@@ -51,6 +49,7 @@ import me.jack.compose.chart.context.requireChartZoomState
 import me.jack.compose.chart.interaction.ChartTapInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.asZoomableContentMeasurePolicy
+import me.jack.compose.chart.measure.withScrollMeasurePolicy
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.ChartScope
@@ -76,6 +75,7 @@ fun <T> SingleChartLayout(
     content: @Composable (SingleChartScope<T>.() -> Unit) = { ChartContent() },
     chartContent: @Composable SingleChartScope<T>.() -> Unit
 ) {
+    @Suppress("DEPRECATION")
     MultiMeasureLayout(
         modifier = modifier,
         content = {
@@ -83,7 +83,9 @@ fun <T> SingleChartLayout(
                 modifier = Modifier,
                 chartDataset = chartDataset,
                 tapGestures = tapGestures,
-                contentMeasurePolicy = contentMeasurePolicy,
+                contentMeasurePolicy = contentMeasurePolicy.withScrollMeasurePolicy {
+                    chartContext.chartScrollState?.offset ?: 0f
+                },
                 chartContext = chartContext,
                 content = content,
                 chartContent = chartContent
@@ -106,12 +108,15 @@ fun CombinedChartLayout(
     chartComponents: List<ChartComponent<Any>>,
     content: @Composable ChartScope.() -> Unit
 ) {
+    @Suppress("DEPRECATION")
     MultiMeasureLayout(
         modifier = modifier,
         content = {
             ChartContent(
                 modifier = Modifier,
-                contentMeasurePolicy = contentMeasurePolicy,
+                contentMeasurePolicy = contentMeasurePolicy.withScrollMeasurePolicy {
+                    chartContext.chartScrollState?.offset ?: 0f
+                },
                 chartContext = chartContext,
                 chartComponents = chartComponents,
                 content = content
@@ -275,6 +280,7 @@ private fun Modifier.chartScrollable(
     }
     with(chartScope) {
         if (IntSize.Zero != contentSize) {
+            contentMeasurePolicy.contentSize = contentSize
             val contentRange = with(contentMeasurePolicy) { measureContent(size = contentSize) }
             if (chartScope is MutableScrollableScope) {
                 chartScope.contentSize = contentSize.toSize()
@@ -282,8 +288,8 @@ private fun Modifier.chartScrollable(
             }
             minOffset = (contentSize.mainAxis - contentRange.mainAxis).coerceAtMost(0f)
             // Use this chartScrollState.offset(MutableState) here to associate the current scope with this state
-            val position = (-chartScrollState.offset / chartGroupOffsets.mainAxis).toInt()
-            val positionOffset = -chartScrollState.offset % chartGroupOffsets.mainAxis
+            val position = (-chartScrollState.offset / chartGroupOffsets).toInt()
+            val positionOffset = -chartScrollState.offset % chartGroupOffsets
             updateScrollState(
                 chartScrollState = chartScrollState,
                 contentSize = contentSize,
@@ -312,7 +318,7 @@ private fun ChartScope.updateScrollState(
     chartScrollState.firstVisibleItemOffset = positionOffset
     chartScrollState.lastVisibleItem = calculateLastVisibleItem(
         itemCount = datasetSize,
-        childMainAxis = chartGroupOffsets.mainAxis,
+        childMainAxis = chartGroupOffsets,
         firstVisibleItem = position,
         firstVisibleItemOffset = positionOffset,
         size = contentSize

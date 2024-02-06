@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.IntrinsicMeasurable
 import androidx.compose.ui.layout.Placeable
@@ -12,21 +13,31 @@ import androidx.compose.ui.node.ParentDataModifierNode
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
+import me.jack.compose.chart.component.DonutData
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.context.ChartContext
-import me.jack.compose.chart.context.ChartScrollState
+import me.jack.compose.chart.context.chartScrollState
 import me.jack.compose.chart.context.isHorizontal
-import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
+import me.jack.compose.chart.model.BarData
+import me.jack.compose.chart.model.CandleData
 import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.model.LineData
+import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.model.forEach
 import me.jack.compose.chart.model.forEachGroup
 import me.jack.compose.chart.model.forEachGroupIndexed
-import me.jack.compose.chart.model.maxOf
-import me.jack.compose.chart.model.minOf
+import me.jack.compose.chart.model.forEachWithNext
+import java.awt.font.NumericShaper
 import java.util.Objects
 import kotlin.math.max
 import kotlin.math.min
+
+typealias LineChartScope = SingleChartScope<LineData>
+typealias BarChartScope = SingleChartScope<BarData>
+typealias DonutChartScope = SingleChartScope<DonutData>
+typealias PieChartScope = SingleChartScope<PieData>
+typealias CandleStickChartScope = SingleChartScope<CandleData>
 
 enum class ChartAnchor {
     Start, Top, End, Bottom, Center
@@ -92,27 +103,29 @@ class ChartScopeInstance(
     }
 }
 
-val ChartScope.chartChildSize: Size
-    get() = contentMeasurePolicy.childSize
+val ChartScope.chartChildDivider: Float
+    get() = contentMeasurePolicy.childDividerSize
 
-val ChartScope.chartChildOffsets: Size
-    get() = contentMeasurePolicy.childOffsets
+val ChartScope.chartGroupDivider: Float
+    get() = contentMeasurePolicy.groupDividerSize
 
-val ChartScope.chartChildDivider: Size
-    get() = contentMeasurePolicy.childDivider
-
-val ChartScope.chartGroupDivider: Size
-    get() = contentMeasurePolicy.groupDivider
-
-val ChartScope.chartGroupOffsets: Size
-    get() = with(contentMeasurePolicy) { groupOffsets }
-
-fun ChartScope.getChartGroupOffsets(index: Int): Size =
-    contentMeasurePolicy.getGroupOffsets(index)
+val ChartScope.chartGroupOffsets: Float
+    get() = with(contentMeasurePolicy) { groupSize }
 
 val ChartScope.isHorizontal: Boolean
     get() = contentMeasurePolicy.orientation.isHorizontal
 
+val <T> SingleChartScope<T>.currentRange: IntRange
+    get() {
+        var start = 0
+        var end = chartDataset.size
+        val scrollState = chartContext.chartScrollState
+        if (null != scrollState) {
+            start = scrollState.firstVisibleItem
+            end = scrollState.lastVisibleItem
+        }
+        return start until end
+    }
 
 @Immutable
 // @LayoutScopeMarker remove it due to access chartData in any scope
@@ -141,6 +154,12 @@ interface ChartScope {
 
     val IntSize.crossAxis: Int
         get() = if (isHorizontal) height else width
+
+    val Offset.mainAxis: Float
+        get() = if (isHorizontal) x else y
+
+    val Offset.crossAxis: Float
+        get() = if (isHorizontal) y else x
 
     @Stable
     fun Modifier.anchor(
@@ -202,16 +221,44 @@ internal class ChartAnchorElement(
 
 interface ChartDatasetAccessScope {
     val chartGroup: String
+    val chartGroupCount: Int
+    val chartItemCount: Int
+    val firstVisibleItem: Int
+    val lastVisibleItem: Int
     val groupIndex: Int
     val index: Int
     fun <T> currentItem(): T
 }
 
-object SimpleChartDatasetAccessScope : ChartDatasetAccessScope {
+fun ChartDatasetAccessScope.isLastGroupIndex(): Boolean {
+    return groupIndex == chartGroupCount - 1
+}
+
+fun ChartDatasetAccessScope.isFirstIndex(): Boolean {
+    return index == firstVisibleItem
+}
+
+fun ChartDatasetAccessScope.isLastIndex(): Boolean {
+    return index == lastVisibleItem
+}
+
+object ChartDatasetAccessScopeInstance : ChartDatasetAccessScope {
     override val chartGroup: String
         get() = internalChartGroup ?: error("The current chart group is null.")
+    override val chartGroupCount: Int
+        get() = internalGroupCount
+    override val chartItemCount: Int
+        get() = internalItemCount
+    override val firstVisibleItem: Int
+        get() = internalFirstVisibleItem
+    override val lastVisibleItem: Int
+        get() = internalLastVisibleItem
     override var groupIndex: Int = -1
     override var index: Int = -1
+    var internalGroupCount: Int = -1
+    var internalFirstVisibleItem: Int = -1
+    var internalLastVisibleItem: Int = -1
+    var internalItemCount: Int = -1
     var internalChartGroup: String? = null
     var internalCurrentItem: Any? = null
     override fun <T> currentItem(): T {
@@ -220,53 +267,63 @@ object SimpleChartDatasetAccessScope : ChartDatasetAccessScope {
     }
 }
 
-inline fun <T> SingleChartScope<T>.maxOf(action: (T) -> Float): Float {
-    val scrollState = chartContext.requireChartScrollState
-    var maxValue = Float.MIN_VALUE
-    chartDataset.forEachGroup {
-        maxValue = max(a = maxValue, b = chartDataset.maxOf(
-            start = scrollState.firstVisibleItem, end = scrollState.lastVisibleItem
-        ) { chartData ->
-            action(chartData)
-        })
-    }
-    return maxValue
-}
-
-inline fun <T> SingleChartScope<T>.minOf(action: (T) -> Float): Float {
-    val scrollState = chartContext.requireChartScrollState
-    var minValue = Float.MAX_VALUE
-    chartDataset.forEachGroup {
-        minValue = min(a = minValue, b = chartDataset.minOf(
-            start = scrollState.firstVisibleItem, end = scrollState.lastVisibleItem
-        ) { chartData ->
-            action(chartData)
-        })
-    }
-    return minValue
-}
-
 inline fun <T> SingleChartScope<T>.fastForEach(
     action: ChartDatasetAccessScope.(chartGroup: String, T) -> Unit
 ) {
-    val scrollState = chartContext[ChartScrollState]
-    if (null == scrollState) {
-        chartDataset.forEachGroup { chartGroup ->
-            chartDataset.forEach(
-                chartGroup = chartGroup
-            ) { currentItem ->
-                action(chartGroup, currentItem)
-            }
+    val range = currentRange
+    ChartDatasetAccessScopeInstance.internalFirstVisibleItem = range.first
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = range.last
+    chartDataset.forEachGroup { chartGroup ->
+        chartDataset.forEach(
+            chartGroup = chartGroup,
+            start = range.first,
+            end = range.last + 1
+        ) { currentItem ->
+            action(chartGroup, currentItem)
         }
-    } else {
-        chartDataset.forEachGroup { chartGroup ->
-            chartDataset.forEach(
-                chartGroup = chartGroup,
-                start = scrollState.firstVisibleItem,
-                end = scrollState.lastVisibleItem
-            ) { currentItem ->
-                action(chartGroup, currentItem)
-            }
+    }
+}
+
+inline fun <T> SingleChartScope<T>.fastForEachByIndex(
+    action: ChartDatasetAccessScope.(chartGroup: String, T) -> Unit
+) {
+    val range = currentRange
+    ChartDatasetAccessScopeInstance.internalFirstVisibleItem = range.first
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = range.last
+    for (index in currentRange) {
+        chartDataset.forEachGroupIndexed { groupIndex, chartGroup ->
+            val item = chartDataset[chartGroup][index]
+            ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
+            ChartDatasetAccessScopeInstance.internalGroupCount = groupCount
+            ChartDatasetAccessScopeInstance.internalItemCount = childItemCount
+            ChartDatasetAccessScopeInstance.internalCurrentItem = item
+            ChartDatasetAccessScopeInstance.groupIndex = groupIndex
+            ChartDatasetAccessScopeInstance.index = index
+            action(ChartDatasetAccessScopeInstance, chartGroup, item)
+        }
+    }
+}
+
+inline fun <T> SingleChartScope<T>.fastForEachWithNext(
+    start: Int = max(0, currentRange.first - 1),
+    end: Int = currentRange.last + 1,
+    action: ChartDatasetAccessScope.(chartGroup: String, current: T, next: T) -> Unit
+) {
+    ChartDatasetAccessScopeInstance.internalFirstVisibleItem = start
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = end
+    chartDataset.forEachGroupIndexed { groupIndex, chartGroup ->
+        chartDataset.forEachWithNext(
+            chartGroup = chartGroup,
+            start = start,
+            end = end
+        ) { current, next ->
+            ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
+            ChartDatasetAccessScopeInstance.internalGroupCount = groupCount
+            ChartDatasetAccessScopeInstance.internalItemCount = childItemCount
+            ChartDatasetAccessScopeInstance.internalCurrentItem = current
+            ChartDatasetAccessScopeInstance.groupIndex = groupIndex
+            ChartDatasetAccessScopeInstance.index = index
+            action(ChartDatasetAccessScopeInstance, chartGroup, current, next)
         }
     }
 }

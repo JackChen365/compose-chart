@@ -1,6 +1,5 @@
 package me.jack.compose.chart.component
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,15 +26,14 @@ import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
-import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.CandleData
 import me.jack.compose.chart.model.asChartDataset
+import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.model.minOf
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.chartChildSize
 import me.jack.compose.chart.scope.fastForEach
-import me.jack.compose.chart.scope.maxOf
-import me.jack.compose.chart.scope.minOf
 import kotlin.math.absoluteValue
 import kotlin.math.min
 
@@ -78,7 +76,7 @@ fun CandleStickChart(
         ChartContent()
     }
 ) {
-    val contentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(candleStickSize.toPx())
+    val contentMeasurePolicy = fixedContentMeasurePolicy(candleStickSize.toPx())
     SingleChartLayout(
         modifier = modifier,
         chartDataset = chartData.asChartDataset(),
@@ -103,14 +101,13 @@ fun CandleStickChart(
 fun SingleChartScope<CandleData>.CandleStickComponent(
     spec: CandleStickSpec = CandleStickSpec()
 ) {
-    val childMainAxis = chartChildSize.mainAxis
     val scrollState = chartContext.requireChartScrollState
     val candleStickWidth = spec.candleStickSize.toPx()
     val stickLineWidth = spec.stackLineSize.toPx()
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
-        val highestValue = maxOf { it.high }
+        val highestValue = chartDataset.maxOf { it.high }
         val candleBlockSize = size.height / highestValue
         var offset = -scrollState.firstVisibleItemOffset
         // we calculate the lastVisibleItem due to other places need it.
@@ -120,9 +117,9 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
                     x = offset,
                     y = 0f
                 ),
-                size = Size(width = childMainAxis, height = size.height),
+                size = Size(width = childSize.mainAxis, height = size.height),
                 focusPoint = Offset(
-                    x = offset + childMainAxis / 2,
+                    x = offset + childSize.mainAxis / 2,
                     y = candleBlockSize * (candleData.open + candleData.close) / 2
                 )
             )
@@ -132,12 +129,12 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
                     x = offset,
                     y = 0f
                 ),
-                size = Size(width = childMainAxis, height = size.height)
+                size = Size(width = childSize.mainAxis, height = size.height)
             )
             drawRect(
                 color = Color.Blue whenPressedAnimateTo Color.Blue.copy(alpha = 0.4f),
                 topLeft = Offset(
-                    x = offset + (childMainAxis - stickLineWidth) / 2,
+                    x = offset + (childSize.mainAxis - stickLineWidth) / 2,
                     y = candleBlockSize * candleData.low
                 ),
                 size = Size(
@@ -149,7 +146,7 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
             drawRect(
                 color = color whenPressedAnimateTo color.copy(alpha = 0.4f),
                 topLeft = Offset(
-                    x = offset + (childMainAxis - candleStickWidth) / 2,
+                    x = offset + (childSize.mainAxis - candleStickWidth) / 2,
                     y = candleBlockSize * min(candleData.open, candleData.close)
                 ),
                 size = Size(
@@ -157,7 +154,7 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
                     height = candleBlockSize * (candleData.open - candleData.close).absoluteValue
                 )
             )
-            offset += childMainAxis
+            offset += childSize.mainAxis
         }
     }
 }
@@ -192,8 +189,8 @@ fun SingleChartScope<CandleData>.CandleStickLeftSideLabel() {
             .widthIn(min = 42.dp)
             .fillMaxHeight()
     ) {
-        val lowest = minOf { it.low }
-        val highest = maxOf { it.high }
+        val lowest = chartDataset.minOf { it.low }
+        val highest = chartDataset.maxOf { it.high }
         var textLayoutResult = textMeasurer.measure(
             text = highest.toString(),
             style = TextStyle(color = Color.Black, fontSize = 16.sp)

@@ -170,7 +170,7 @@ private fun DrawScope.horizontalScrollableGridDividerComponent(
     with(chartScope) {
         val chartScrollState = chartContext.requireChartScrollState
         var itemOffset =
-            -chartScrollState.firstVisibleItemOffset - chartGroupDivider.mainAxis / 2 - chartChildDivider.mainAxis / 2
+            -chartScrollState.firstVisibleItemOffset - chartGroupDivider / 2 - chartChildDivider / 2
         chartScrollState.currentVisibleRange.forEach { _ ->
             drawLine(
                 color = dividerColor,
@@ -178,7 +178,7 @@ private fun DrawScope.horizontalScrollableGridDividerComponent(
                 end = Offset(itemOffset, size.height),
                 strokeWidth = strokeWidth.toPx()
             )
-            itemOffset += chartGroupOffsets.mainAxis
+            itemOffset += chartGroupOffsets
         }
     }
 }
@@ -192,7 +192,7 @@ private fun DrawScope.verticalScrollableGridDividerComponent(
     with(chartScope) {
         val chartScrollState = chartContext.requireChartScrollState
         var itemOffset =
-            -chartScrollState.firstVisibleItemOffset - chartGroupDivider.mainAxis / 2 - chartChildDivider.mainAxis / 2
+            -chartScrollState.firstVisibleItemOffset - chartGroupDivider / 2 - chartChildDivider / 2
         chartScrollState.currentVisibleRange.forEach { _ ->
             drawLine(
                 color = dividerColor,
@@ -200,7 +200,7 @@ private fun DrawScope.verticalScrollableGridDividerComponent(
                 end = Offset(size.width, itemOffset),
                 strokeWidth = strokeWidth.toPx()
             )
-            itemOffset += chartGroupOffsets.mainAxis
+            itemOffset += chartGroupOffsets
         }
     }
     val mainAxisItemSize = size.width / fixedDividerCount
@@ -231,7 +231,7 @@ fun ChartScope.ChartIndicatorComponent(
     spec: IndicationSpec = IndicationSpec()
 ) {
     val scrollState = chartContext.requireChartScrollState
-    val groupMainAxis = chartGroupOffsets.mainAxis
+    val groupMainAxis = chartGroupOffsets
     val textMeasurer = rememberTextMeasurer()
     Canvas(
         modifier = Modifier

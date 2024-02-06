@@ -1,11 +1,16 @@
 package me.jack.chart.demo.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -20,29 +25,30 @@ import kotlinx.coroutines.launch
 import me.jack.compose.chart.component.BarChart
 import me.jack.compose.chart.component.BarStyle
 import me.jack.compose.chart.component.TapGestures
+import me.jack.compose.chart.component.onDoubleTap
+import me.jack.compose.chart.component.onLongPress
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
-import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
-import me.jack.compose.chart.measure.fixedCrossAxisOverlayContentMeasurePolicy
-import me.jack.compose.chart.measure.fixedMainAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedOverlayContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.SimpleBarData
 import me.jack.compose.chart.model.chartDataGroup
 import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
 
 class BarDemos {
     @Preview
     @Composable
-    fun BarChartSimpleUsage() {
+    fun BarChartUsage() {
         val barDataset = buildChartDataset()
         val context = LocalContext.current
-        Column {
+        Column(modifier = Modifier) {
             BarChart(
                 modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
+                contentMeasurePolicy = fixedContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
                 chartDataset = barDataset,
                 tapGestures = TapGestures<BarData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
@@ -51,7 +57,28 @@ class BarDemos {
             Spacer(modifier = Modifier.height(8.dp))
             BarChart(
                 modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedMainAxisContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
+                contentMeasurePolicy = fixedVerticalContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
+                chartDataset = barDataset,
+                tapGestures = TapGestures<BarData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+
+    @Composable
+    fun StackBarChartUsage() {
+        val barDataset = buildChartDataset()
+        val context = LocalContext.current
+        Column(modifier = Modifier) {
+            BarChart(
+                modifier = Modifier.height(240.dp),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(
+                    32.dp.toPx(),
+                    8.dp.toPx(),
+                    Orientation.Horizontal
+                ),
+                barStyle = BarStyle.Stack,
                 chartDataset = barDataset,
                 tapGestures = TapGestures<BarData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
@@ -60,7 +87,11 @@ class BarDemos {
             Spacer(modifier = Modifier.height(8.dp))
             BarChart(
                 modifier = Modifier.height(240.dp),
-                contentMeasurePolicy = fixedCrossAxisOverlayContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx()),
+                contentMeasurePolicy = fixedOverlayContentMeasurePolicy(
+                    32.dp.toPx(),
+                    8.dp.toPx(),
+                    Orientation.Vertical
+                ),
                 barStyle = BarStyle.Stack,
                 chartDataset = barDataset,
                 tapGestures = TapGestures<BarData>().onTap { currentItem ->
@@ -89,10 +120,14 @@ class BarDemos {
         Box(modifier = Modifier.fillMaxSize()) {
             BarChart(
                 modifier = Modifier.height(360.dp),
-                contentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
+                contentMeasurePolicy = fixedContentMeasurePolicy(32.dp.toPx(), 8.dp.toPx(), 16.dp.toPx()),
                 chartDataset = barDataset,
                 tapGestures = TapGestures<BarData>().onTap { currentItem ->
                     Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }.onDoubleTap { currentItem ->
+                    Toast.makeText(context, "onDoubleTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }.onLongPress { currentItem ->
+                    Toast.makeText(context, "onLongPress:${currentItem}", Toast.LENGTH_SHORT).show()
                 }
             )
         }

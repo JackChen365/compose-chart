@@ -21,7 +21,7 @@ import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
-import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.LineData
@@ -75,7 +75,7 @@ class CombinedChartDemos {
             chartContext = ChartContext
                 .scrollable(state = rememberScrollState())
                 .chartInteraction(MutableInteractionSource()),
-            contentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(
+            contentMeasurePolicy = fixedContentMeasurePolicy(
                 fixedRowSize = 32.dp.toPx()
             ),
             componentContent = {

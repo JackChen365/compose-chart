@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
-import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
@@ -25,20 +24,16 @@ import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
-import me.jack.compose.chart.measure.fixedCrossAxisContentMeasurePolicy
-import me.jack.compose.chart.measure.fixedMainAxisContentMeasurePolicy
+import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.LineData
-import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.forEachGroupIndexed
-import me.jack.compose.chart.model.forEachWithNext
 import me.jack.compose.chart.model.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.chartChildOffsets
-import me.jack.compose.chart.scope.chartChildSize
-import me.jack.compose.chart.scope.chartGroupOffsets
-import me.jack.compose.chart.scope.getChartGroupOffsets
+import me.jack.compose.chart.scope.currentRange
+import me.jack.compose.chart.scope.fastForEachWithNext
+import me.jack.compose.chart.scope.isFirstIndex
 import me.jack.compose.chart.scope.isHorizontal
+import kotlin.math.max
 
 private val DEFAULT_CROSS_AXIS_SIZE = 32.dp
 
@@ -60,7 +55,7 @@ fun SimpleLineChart(
     modifier: Modifier = Modifier,
     chartDataset: ChartDataset<LineData>,
     lineSpec: LineSpec = LineSpec(),
-    contentMeasurePolicy: ChartContentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
+    contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
     content: @Composable SingleChartScope<LineData>.() -> Unit = { ChartContent() }
 ) {
@@ -79,7 +74,7 @@ fun LineChart(
     modifier: Modifier = Modifier,
     chartDataset: ChartDataset<LineData>,
     lineSpec: LineSpec = LineSpec(),
-    contentMeasurePolicy: ChartContentMeasurePolicy = fixedCrossAxisContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
+    contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
     content: @Composable SingleChartScope<LineData>.() -> Unit = {
         ChartBorderComponent()
@@ -134,147 +129,69 @@ fun SingleChartScope<LineData>.ChartLineComponent(
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
-        if (isHorizontal) {
-            horizontalLineChart(maxValue, lineSpec)
-        } else {
-            verticalLineChart(maxValue, lineSpec)
-        }
+        horizontalLineChart(maxValue, lineSpec)
     }
 }
 
 private fun ChartDrawScope<LineData>.horizontalLineChart(
     maxValue: Float,
-    lineSpec: LineSpec,
-) = with(singleChartScope) {
-    val scrollState = chartContext.requireChartScrollState
-    val lineItemSize = size.crossAxis / maxValue
-    chartDataset.forEachGroupIndexed { groupIndex, groupName ->
-        var offset: Float = -scrollState.firstVisibleItemOffset + getChartGroupOffsets(groupIndex).mainAxis
-        chartDataset.forEachWithNext(
-            chartGroup = groupName,
-            start = scrollState.firstVisibleItem,
-            end = scrollState.lastVisibleItem
-        ) { current, next ->
-            clickableRect(
-                topLeft = Offset(offset, 0f),
-                size = Size(chartChildSize.mainAxis, size.height),
-                focusPoint = Offset(
-                    x = offset + singleChartScope.chartChildOffsets.mainAxis / 2,
-                    y = size.height - current.value * lineItemSize
-                )
-            )
-            drawLine(
-                color = current.color,
-                start = Offset(
-                    x = offset + singleChartScope.chartChildOffsets.mainAxis / 2,
-                    y = size.height - current.value * lineItemSize
-                ),
-                end = Offset(
-                    x = offset + singleChartScope.chartChildOffsets.mainAxis / 2 + singleChartScope.chartGroupOffsets.mainAxis,
-                    y = size.height - next.value * lineItemSize
-                ),
-                strokeWidth = lineSpec.strokeWidth.toPx()
-            )
-            val circleRadiusPx = lineSpec.circleRadius.toPx()
-            drawCircle(
-                color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
-                radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
-                center = Offset(
-                    x = offset + singleChartScope.chartChildOffsets.mainAxis / 2,
-                    y = size.height - current.value * lineItemSize
-                )
-            )
-            offset += singleChartScope.chartGroupOffsets.mainAxis
-            // draw the last circle
-            if (index + 1 == scrollState.lastVisibleItem - 1) {
-                clickableRect(
-                    topLeft = Offset(offset, 0f),
-                    size = Size(chartChildSize.mainAxis, size.height),
-                    currentItem = next,
-                    index = index + 1,
-                    focusPoint = Offset(
-                        x = offset + singleChartScope.chartChildOffsets.mainAxis / 2,
-                        y = size.height - next.value * lineItemSize
-                    )
-                )
-                drawCircle(
-                    color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
-                    radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
-                    center = Offset(
-                        x = offset + singleChartScope.chartChildOffsets.mainAxis / 2,
-                        y = size.height - next.value * lineItemSize
-                    )
-                )
-            }
-        }
-    }
-}
-
-private fun ChartDrawScope<LineData>.verticalLineChart(
-    maxValue: Float,
     lineSpec: LineSpec
 ) = with(singleChartScope) {
     val lineItemSize = size.crossAxis / maxValue
-    chartDataset.forEachGroupIndexed { groupIndex, groupName ->
-        val scrollState = chartContext.requireChartScrollState
-        var offset: Float = -scrollState.firstVisibleItemOffset + getChartGroupOffsets(groupIndex).mainAxis
-        chartDataset.forEachWithNext(
-            chartGroup = groupName,
-            start = scrollState.firstVisibleItem,
-            end = scrollState.lastVisibleItem
-        ) { current, next ->
+    val circleRadiusPx = lineSpec.circleRadius.toPx()
+    fastForEachWithNext { _, current, next ->
+        drawLine(
+            color = current.color,
+            start = if (isHorizontal) Offset(
+                x = childCenterOffset.x,
+                y = size.height - current.value * lineItemSize
+            ) else Offset(
+                x = size.width - current.value * lineItemSize,
+                y = childCenterOffset.y
+            ),
+            end = if (isHorizontal) Offset(
+                x = nextChildCenterOffset.x,
+                y = size.height - next.value * lineItemSize
+            ) else Offset(
+                x = size.width - next.value * lineItemSize,
+                y = 0f
+            ),
+            strokeWidth = lineSpec.strokeWidth.toPx()
+        )
+        if (isFirstIndex()) {
             clickableRect(
-                topLeft = Offset(0f, offset),
-                size = Size(size.width, chartChildSize.mainAxis),
+                topLeft = currentLeftTopOffset,
+                size = childSize,
                 focusPoint = Offset(
-                    x = current.value * lineItemSize,
-                    y = offset + singleChartScope.chartChildOffsets.mainAxis / 2
+                    x = currentLeftTopOffset.x,
+                    y = size.height - current.value * lineItemSize,
                 )
             )
-            drawLine(
-                color = current.color,
-                start = Offset(
-                    x = current.value * lineItemSize,
-                    y = offset + singleChartScope.chartChildOffsets.mainAxis / 2
-                ),
-                end = Offset(
-                    x = next.value * lineItemSize,
-                    y = offset + singleChartScope.chartChildOffsets.mainAxis / 2 + singleChartScope.chartGroupOffsets.mainAxis
-                ),
-                strokeWidth = lineSpec.strokeWidth.toPx()
-            )
-            val circleRadiusPx = lineSpec.circleRadius.toPx()
             drawCircle(
                 color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
                 radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
                 center = Offset(
-                    x = current.value * lineItemSize,
-                    y = offset + singleChartScope.chartChildOffsets.mainAxis / 2
+                    x = childCenterOffset.x,
+                    y = size.height - current.value * lineItemSize,
                 )
             )
-            offset += singleChartScope.chartGroupOffsets.mainAxis
-            // draw the last circle
-            if (index + 1 == scrollState.lastVisibleItem - 1) {
-                clickableRect(
-                    topLeft = Offset(0f, offset),
-                    size = Size(size.width, chartChildSize.mainAxis),
-                    currentItem = next,
-                    focusPoint = Offset(
-                        x = next.value * lineItemSize,
-                        y = offset + singleChartScope.chartChildOffsets.mainAxis / 2
-                    ),
-                    index = index + 1
-                )
-                drawCircle(
-                    color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
-                    radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
-                    center = Offset(
-                        x = next.value * lineItemSize,
-                        y = offset + singleChartScope.chartChildOffsets.mainAxis / 2
-                    )
-                )
-            }
         }
+        clickableRect(
+            topLeft = nextLeftTopOffset,
+            size = childSize,
+            focusPoint = Offset(
+                x = nextLeftTopOffset.x + childSize.mainAxis / 2,
+                y = nextLeftTopOffset.y + childSize.crossAxis / 2
+            )
+        )
+        drawCircle(
+            color = current.color whenPressedAnimateTo current.color.copy(alpha = lineSpec.pressAlpha),
+            radius = circleRadiusPx whenPressedAnimateTo circleRadiusPx * 1.4f,
+            center = Offset(
+                x = nextChildCenterOffset.x,
+                y = size.height - next.value * lineItemSize,
+            )
+        )
     }
 }
 
@@ -283,7 +200,7 @@ fun SimpleCurveLineChart(
     modifier: Modifier = Modifier,
     chartDataset: ChartDataset<LineData>,
     lineSpec: CurveLineSpec = CurveLineSpec(),
-    contentMeasurePolicy: ChartContentMeasurePolicy = fixedMainAxisContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
+    contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
     content: @Composable SingleChartScope<LineData>.() -> Unit = { ChartContent() }
 ) {
@@ -307,7 +224,7 @@ fun CurveLineChart(
     modifier: Modifier = Modifier,
     chartDataset: ChartDataset<LineData>,
     lineSpec: CurveLineSpec = CurveLineSpec(),
-    contentMeasurePolicy: ChartContentMeasurePolicy = fixedMainAxisContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
+    contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
     content: @Composable SingleChartScope<LineData>.() -> Unit = {
         ChartBorderComponent()
@@ -337,11 +254,7 @@ fun CurveLineChart(
 fun SingleChartScope<LineData>.CurveLineComponent(
     lineSpec: CurveLineSpec = CurveLineSpec(),
 ) {
-    if (isHorizontal) {
-        HorizontalCurveLine(lineSpec)
-    } else {
-        error("Does not support VerticalCurveLine.")
-    }
+    HorizontalCurveLine(lineSpec)
 }
 
 @Composable
@@ -353,110 +266,83 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(spec: CurveLineSpec) 
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
+        val range = currentRange
+        val strokeWidthPx = spec.strokeWidth.toPx()
         val lineItemSize = size.crossAxis / maxValue
-        val scrollState = chartContext.requireChartScrollState
-        chartDataset.forEachGroup { groupName ->
-            path.reset()
-            var lastOffset: Offset = Offset.Zero
-            var firstVisibleItem = scrollState.firstVisibleItem
-            val lastVisibleItem = scrollState.lastVisibleItem
-            var offset: Float = -scrollState.firstVisibleItemOffset
-            if (0 < scrollState.firstVisibleItem) {
-                firstVisibleItem -= 1
-                offset = -scrollState.firstVisibleItemOffset - chartChildOffsets.mainAxis
+        val start = max(0, range.first - 1)
+        val end = range.last + 1
+        fastForEachWithNext(start, end) { _, current, next ->
+            val currentOffset = childCenterOffset.copy(y = current.value * lineItemSize)
+            val nextOffset = nextChildCenterOffset.copy(y = next.value * lineItemSize)
+            val firstControlPoint = Offset(
+                x = currentOffset.x + (nextOffset.x - currentOffset.x) / 2F,
+                y = currentOffset.y,
+            )
+            val secondControlPoint = Offset(
+                x = currentOffset.x + (nextOffset.x - currentOffset.x) / 2F,
+                y = nextOffset.y,
+            )
+            if (0 == index) {
+                path.reset()
+                path.moveTo(currentOffset.x - childOffsets.mainAxis, currentOffset.y)
+                path.lineTo(currentOffset.x, currentOffset.y)
+            } else if (index == start) {
+                path.reset()
+                path.moveTo(currentOffset.x, size.height)
+                path.lineTo(currentOffset.x, currentOffset.y)
             }
-            chartDataset.forEachWithNext(
-                chartGroup = groupName,
-                start = firstVisibleItem,
-                end = lastVisibleItem
-            ) { current, next ->
-                val currentOffset = Offset(
-                    x = offset + chartChildOffsets.mainAxis / 2,
-                    y = size.height - current.value * lineItemSize
-                )
-                val nextOffset = Offset(
-                    x = currentOffset.x + chartChildOffsets.mainAxis,
-                    y = size.height - next.value * lineItemSize
-                )
-                val firstControlPoint = Offset(
-                    x = currentOffset.x + (nextOffset.x - currentOffset.x) / 2F,
-                    y = currentOffset.y,
-                )
-                val secondControlPoint = Offset(
-                    x = currentOffset.x + (nextOffset.x - currentOffset.x) / 2F,
-                    y = nextOffset.y,
-                )
-                if (0 == index) {
-                    path.moveTo(currentOffset.x - chartChildOffsets.mainAxis, currentOffset.y)
-                    path.lineTo(currentOffset.x, currentOffset.y)
-                } else if (index == firstVisibleItem) {
-                    path.moveTo(currentOffset.x, size.height)
-                    path.lineTo(currentOffset.x, currentOffset.y)
-                }
-                path.cubicTo(
-                    x1 = firstControlPoint.x,
-                    y1 = firstControlPoint.y,
-                    x2 = secondControlPoint.x,
-                    y2 = secondControlPoint.y,
-                    x3 = nextOffset.x,
-                    y3 = nextOffset.y,
-                )
-                // add clickable rect
+            path.cubicTo(
+                x1 = firstControlPoint.x,
+                y1 = firstControlPoint.y,
+                x2 = secondControlPoint.x,
+                y2 = secondControlPoint.y,
+                x3 = nextOffset.x,
+                y3 = nextOffset.y,
+            )
+            // add clickable rect
+            clickableRect(
+                topLeft = currentLeftTopOffset,
+                size = childSize,
+                focusPoint = currentOffset
+            )
+            drawCircle(
+                color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
+                radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
+                center = currentOffset
+            )
+            // add clickable rect
+            clickableRect(
+                topLeft = currentLeftTopOffset,
+                size = Size(width = childSize.width, size.height),
+                focusPoint = childCenterOffset.copy(y = size.height - current.value * lineItemSize)
+            )
+            if (index + 1 == range.last) {
                 clickableRect(
-                    topLeft = Offset(
-                        x = offset,
-                        y = 0f
-                    ),
-                    size = Size(width = chartChildOffsets.width, size.height),
-                    focusPoint = currentOffset
+                    topLeft = nextLeftTopOffset,
+                    size = Size(width = childSize.width, size.height),
+                    focusPoint = nextChildCenterOffset.copy(y = next.value * lineItemSize)
                 )
                 drawCircle(
-                    color = current.color whenPressedAnimateTo current.color.copy(alpha = spec.pressAlpha),
+                    color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
-                    center = currentOffset
+                    center = nextChildCenterOffset.copy(y = next.value * lineItemSize)
                 )
-                offset += chartChildOffsets.mainAxis
-                if (index + 1 == scrollState.lastVisibleItem - 1) {
-                    path.lineTo(nextOffset.x + chartChildOffsets.mainAxis / 2, nextOffset.y)
-                    // add clickable rect
-                    clickableRect(
-                        topLeft = Offset(
-                            x = nextOffset.x - chartChildOffsets.width / 2,
-                            y = 0f
-                        ),
-                        size = Size(width = chartChildOffsets.width, size.height),
-                        currentItem = next,
-                        focusPoint = Offset(
-                            x = offset + chartChildOffsets.mainAxis / 2,
-                            y = size.height - next.value * lineItemSize
-                        ),
-                        index = index + 1
-                    )
-                    drawCircle(
-                        color = next.color whenPressedAnimateTo next.color.copy(alpha = spec.pressAlpha),
-                        radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
-                        center = Offset(
-                            x = offset + chartChildOffsets.mainAxis / 2,
-                            y = size.height - next.value * lineItemSize
-                        )
-                    )
-                    lastOffset = nextOffset
-                }
+                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, nextOffset.y)
+                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, size.height + strokeWidthPx)
+                val currentItem: LineData = currentItem()
+                drawPath(
+                    path = path,
+                    color = currentItem.color,
+                    style = Stroke(strokeWidthPx),
+                )
+                path.lineTo(nextOffset.x + childSize.mainAxis / 2, size.height)
+                path.lineTo(0f, size.height)
+                drawPath(
+                    path = path,
+                    color = currentItem.color.copy(alpha = spec.pressAlpha),
+                    style = spec.style
+                )
             }
-            // draw stroke path
-            val lineData = chartDataset[groupName].first()
-            drawPath(
-                path = path,
-                color = lineData.color,
-                style = Stroke(spec.strokeWidth.toPx()),
-            )
-            path.lineTo(lastOffset.x + chartChildOffsets.mainAxis / 2, size.height)
-            path.lineTo(0f, size.height)
-            drawPath(
-                path = path,
-                color = lineData.color.copy(alpha = spec.pressAlpha),
-                style = spec.style
-            )
         }
     }
 }

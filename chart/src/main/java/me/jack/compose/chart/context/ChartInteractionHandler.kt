@@ -78,7 +78,6 @@ class ChartPressInteractionState : ChartInteractionState<Boolean> {
     override suspend fun handleInteraction(interactions: Flow<Interaction>) {
         val pressInteractions = mutableListOf<PressInteraction.Press>()
         interactions.collect { interaction ->
-            println("interaction:$interaction")
             when (interaction) {
                 is PressInteraction.Press -> {
                     pressInteractions.add(interaction)

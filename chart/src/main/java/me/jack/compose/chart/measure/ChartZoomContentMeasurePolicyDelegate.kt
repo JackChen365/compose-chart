@@ -1,7 +1,10 @@
 package me.jack.compose.chart.measure
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
+import me.jack.compose.chart.context.isHorizontal
+import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartScope
 
 fun ChartContentMeasurePolicy.asZoomableContentMeasurePolicy(
@@ -20,32 +23,35 @@ class ChartZoomContentMeasurePolicyDelegate(
             return childSize.times(onZoomValueChanged())
         }
 
-    override val childOffsets: Size
-        get() {
-            val childOffsets = measurePolicy.childOffsets
-            return childOffsets.times(onZoomValueChanged())
-        }
+    override val ChartScope.groupSize: Float
+        get() = with(measurePolicy) { groupSize * onZoomValueChanged() }
 
-    override val groupDivider: Size
-        get() {
-            val groupInsets = measurePolicy.groupDivider
-            return groupInsets.times(onZoomValueChanged())
-        }
+    override val childDividerSize: Float
+        get() = measurePolicy.childDividerSize * onZoomValueChanged()
+    override val groupDividerSize: Float
+        get() = measurePolicy.groupDividerSize * onZoomValueChanged()
 
-    override val ChartScope.groupOffsets: Size
-        get() {
-            val groupOffsets = with(measurePolicy) { groupOffsets }
-            return groupOffsets.times(onZoomValueChanged())
+    override fun childLeftTop(
+        groupCount: Int,
+        groupIndex: Int,
+        index: Int
+    ): Offset {
+        val childLeftTop = measurePolicy.childLeftTop(groupCount, groupIndex, index)
+        return if (orientation.isHorizontal) {
+            childLeftTop.copy(x = childLeftTop.x * onZoomValueChanged())
+        } else {
+            childLeftTop.copy(y = childLeftTop.y * onZoomValueChanged())
         }
-
-    override fun getGroupOffsets(index: Int): Size {
-        return measurePolicy.getGroupOffsets(index).times(onZoomValueChanged())
     }
 
     override fun ChartScope.measureContent(size: IntSize): Size {
         val contentSize = with(measurePolicy) {
             measureContent(size)
         }
-        return contentSize.times(onZoomValueChanged())
+        return if (orientation.isHorizontal) {
+            contentSize.copy(width = contentSize.width * onZoomValueChanged())
+        } else {
+            contentSize.copy(height = contentSize.height * onZoomValueChanged())
+        }
     }
 }

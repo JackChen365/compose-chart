@@ -12,7 +12,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
-import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
@@ -20,16 +19,12 @@ import me.jack.compose.chart.draw.DrawElement
 import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
-import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.model.ChartDataset
-import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.model.forEachGroupIndexed
 import me.jack.compose.chart.model.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
-import me.jack.compose.chart.scope.chartChildOffsets
-import me.jack.compose.chart.scope.chartGroupOffsets
-import me.jack.compose.chart.scope.getChartGroupOffsets
+import me.jack.compose.chart.scope.fastForEach
+import me.jack.compose.chart.scope.isHorizontal
 
 class BubbleSpec(
     val maxRadius: Dp = 40.dp,
@@ -74,7 +69,10 @@ fun BubbleChart(
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(state = rememberScrollState())
+            .scrollable(
+                state = rememberScrollState(),
+                orientation = contentMeasurePolicy.orientation
+            )
             .zoom(),
         content = content,
         chartContent = {
@@ -130,26 +128,20 @@ private fun SingleChartScope<BubbleData>.BubbleComponent(
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
-        val scrollState = chartContext.requireChartScrollState
         val bubbleItemSize = size.height / maxValue
-        chartDataset.forEachGroupIndexed { groupIndex, groupName ->
-            var offset: Float = -scrollState.firstVisibleItemOffset + getChartGroupOffsets(groupIndex).mainAxis
-            chartDataset.forEach(
-                chartGroup = groupName,
-                start = scrollState.firstVisibleItem,
-                end = scrollState.lastVisibleItem
-            ) { current ->
-                clickable {
-                    drawCircle(
-                        color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.8f),
-                        radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
-                        center = Offset(
-                            x = offset + chartChildOffsets.mainAxis / 2,
-                            y = size.crossAxis - current.value * bubbleItemSize
-                        )
+        fastForEach { _, current ->
+            clickable {
+                drawCircle(
+                    color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.8f),
+                    radius = (current.volume * volumeSize) whenPressedAnimateTo (current.volume * volumeSize * 1.2f),
+                    center = if (isHorizontal) Offset(
+                        x = childCenterOffset.x,
+                        y = size.crossAxis - current.value * bubbleItemSize
+                    ) else Offset(
+                        x = size.crossAxis - current.value * bubbleItemSize,
+                        y = childCenterOffset.y
                     )
-                }
-                offset += chartGroupOffsets.mainAxis
+                )
             }
         }
     }

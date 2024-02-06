@@ -1,6 +1,5 @@
 package me.jack.chart.demo.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -20,8 +19,6 @@ import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SINGLE_GROUP_NAME
 import me.jack.compose.chart.model.SimpleLineData
 import me.jack.compose.chart.model.chartDataGroup
-import me.jack.compose.chart.scope.ChartAnchor
-import me.jack.compose.chart.scope.SingleChartScopeInstance
 import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
 
