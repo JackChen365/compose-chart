@@ -46,6 +46,15 @@ class CandleStickSpec(
     val stackLineSize: Dp = 2.dp,
 )
 
+val cancelStickChartContent: @Composable SingleChartScope<CandleData>.() -> Unit =
+    {
+        CandleStickLeftSideLabel()
+        ChartGridDividerComponent()
+        ChartIndicatorComponent()
+        ChartBorderComponent()
+        ChartContent()
+    }
+
 @Composable
 fun SimpleCandleStickChart(
     modifier: Modifier = Modifier,
@@ -53,7 +62,7 @@ fun SimpleCandleStickChart(
     candleStickSize: Dp = 32.dp,
     spec: CandleStickSpec = CandleStickSpec(),
     tapGestures: TapGestures<CandleData> = TapGestures(),
-    content: @Composable SingleChartScope<CandleData>.() -> Unit = { ChartContent() }
+    content: @Composable SingleChartScope<CandleData>.() -> Unit = simpleChartContent
 ) {
     CandleStickChart(
         modifier = modifier,
@@ -72,13 +81,7 @@ fun CandleStickChart(
     candleStickSize: Dp = 32.dp,
     spec: CandleStickSpec = CandleStickSpec(),
     tapGestures: TapGestures<CandleData> = TapGestures(),
-    content: @Composable SingleChartScope<CandleData>.() -> Unit = {
-        CandleStickLeftSideLabel()
-        ChartGridDividerComponent()
-        ChartIndicatorComponent()
-        ChartBorderComponent()
-        ChartContent()
-    }
+    content: @Composable SingleChartScope<CandleData>.() -> Unit = cancelStickChartContent
 ) {
     val contentMeasurePolicy = fixedContentMeasurePolicy(candleStickSize.toPx())
     SingleChartLayout(

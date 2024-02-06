@@ -64,7 +64,10 @@ fun <T> SingleChartScope<T>.ChartCanvas(
             .drawBehind {
                 if (null == chartDrawScope) {
                     chartDrawScope = ChartDrawScope(
-                        singleChartScope = this@ChartCanvas, drawScope = this, scope = scope, tapGestures = tapGestures
+                        singleChartScope = this@ChartCanvas,
+                        drawScope = this,
+                        scope = scope,
+                        tapGestures = tapGestures
                     )
                 }
                 onDraw.invoke(checkNotNull(chartDrawScope).also { it.reset() })
@@ -813,7 +816,7 @@ fun Offset.intersectArcStrokeWidth(
     val end = (start + sweepAngle) % 360
 
     val isWithinDistance =
-        distance < (size.width / 2 + strokeWidth / 2) && distance > (size.width / 2 - strokeWidth / 2)
+        distance < (size.width / 2 + strokeWidth/ 2) && distance > (size.width / 2 - strokeWidth)
     val isWithinAngles = if (start < end) {
         angle in start..end
     } else {

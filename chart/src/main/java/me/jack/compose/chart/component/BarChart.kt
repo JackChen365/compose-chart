@@ -14,6 +14,7 @@ import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.draw.DrawElement
+import me.jack.compose.chart.draw.TraceableDrawScope
 import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
@@ -22,7 +23,6 @@ import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.computeGroupTotalValues
 import me.jack.compose.chart.model.maxOf
 import me.jack.compose.chart.scope.BarChartScope
-import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.fastForEachByIndex
 import me.jack.compose.chart.scope.isHorizontal
@@ -32,6 +32,14 @@ enum class BarStyle {
     Normal, Stack
 }
 
+val barChartContent: @Composable BarChartScope.() -> Unit = {
+    ChartBorderComponent()
+    ChartGridDividerComponent()
+    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartIndicatorComponent()
+    ChartContent()
+}
+
 @Composable
 fun SimpleBarChart(
     modifier: Modifier = Modifier,
@@ -39,7 +47,7 @@ fun SimpleBarChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     barStyle: BarStyle = BarStyle.Normal,
     tapGestures: TapGestures<BarData> = TapGestures(),
-    content: @Composable BarChartScope.() -> Unit = { ChartContent() }
+    content: @Composable BarChartScope.() -> Unit = simpleChartContent
 ) {
     BarChart(
         modifier = modifier,
@@ -58,13 +66,7 @@ fun BarChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     barStyle: BarStyle = BarStyle.Normal,
     tapGestures: TapGestures<BarData> = TapGestures(),
-    content: @Composable BarChartScope.() -> Unit = {
-        ChartBorderComponent()
-        ChartGridDividerComponent()
-        ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
-        ChartIndicatorComponent()
-        ChartContent()
-    }
+    content: @Composable BarChartScope.() -> Unit = barChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
@@ -90,6 +92,12 @@ fun BarChart(
     }
 }
 
+/**
+ * The standard bar component.
+ * The component in [BarChartScope] and it helps generate the bar by [BarData]
+ * Each bar can be clicked since we use [TraceableDrawScope] and put the drawing element in [clickable]
+ * This component support orientation and you can change the orientation by [ChartContentMeasurePolicy]
+ */
 @Composable
 fun BarChartScope.BarComponent() {
     val maxValue = remember(chartDataset) {

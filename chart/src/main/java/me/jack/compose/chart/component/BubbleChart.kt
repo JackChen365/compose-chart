@@ -30,6 +30,13 @@ class BubbleSpec(
     val maxRadius: Dp = 40.dp,
 )
 
+val bubbleChartContent: @Composable SingleChartScope<BubbleData>.() -> Unit = {
+    ChartBorderComponent()
+    ChartGridDividerComponent()
+    ChartIndicatorComponent()
+    ChartContent()
+}
+
 @Composable
 fun SimpleBubbleChart(
     modifier: Modifier = Modifier,
@@ -37,7 +44,7 @@ fun SimpleBubbleChart(
     bubbleSpec: BubbleSpec = BubbleSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
     tapGestures: TapGestures<BubbleData> = TapGestures(),
-    content: @Composable SingleChartScope<BubbleData>.() -> Unit = { ChartContent() }
+    content: @Composable SingleChartScope<BubbleData>.() -> Unit = simpleChartContent
 ) {
     BubbleChart(
         modifier = modifier,
@@ -56,12 +63,7 @@ fun BubbleChart(
     bubbleSpec: BubbleSpec = BubbleSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
     tapGestures: TapGestures<BubbleData> = TapGestures(),
-    content: @Composable SingleChartScope<BubbleData>.() -> Unit = {
-        ChartBorderComponent()
-        ChartGridDividerComponent()
-        ChartIndicatorComponent()
-        ChartContent()
-    }
+    content: @Composable SingleChartScope<BubbleData>.() -> Unit = bubbleChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,

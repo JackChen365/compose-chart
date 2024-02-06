@@ -1,7 +1,6 @@
 package me.jack.chart.demo.ui
 
 import android.widget.Toast
-import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -20,29 +19,28 @@ import me.jack.compose.chart.measure.fixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.SimpleBubbleData
-import me.jack.compose.chart.model.simpleChartDataset
+import me.jack.compose.chart.model.rememberChartDataGroup
 import kotlin.random.Random
 
 class BubbleDemos {
 
+    @Composable
     private fun buildChartDataset(): ChartDataset<BubbleData> {
-        val dataset = simpleChartDataset<BubbleData>()
-        repeat(3) { groupIndex ->
-            val dataList = mutableListOf<BubbleData>()
-            val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
-            repeat(50) {
-                dataList.add(
-                    SimpleBubbleData(
-                        label = "Label$groupIndex-$it",
-                        value = Random.nextInt(10, 100).toFloat(),
-                        volume = Random.nextInt(2, 12).toFloat(),
-                        color = groupColor
-                    )
-                )
+        return rememberChartDataGroup {
+            repeat(3) { groupIndex ->
+                val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
+                dataset("Group:$groupIndex") {
+                    items(50) {
+                        SimpleBubbleData(
+                            label = "Label$groupIndex-$it",
+                            value = Random.nextInt(10, 100).toFloat(),
+                            volume = Random.nextInt(2, 12).toFloat(),
+                            color = groupColor
+                        )
+                    }
+                }
             }
-            dataset.addChartData("Group:$groupIndex", dataList)
         }
-        return dataset
     }
 
     @Preview

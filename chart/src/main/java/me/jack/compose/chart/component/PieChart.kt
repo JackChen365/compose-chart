@@ -34,9 +34,7 @@ fun PieChart(
     chartDataset: ChartDataset<PieData>,
     tapGestures: TapGestures<PieData> = TapGestures(),
     spec: PieSpec = PieSpec(),
-    content: @Composable SingleChartScope<PieData>.() -> Unit = {
-        ChartContent()
-    }
+    content: @Composable SingleChartScope<PieData>.() -> Unit = simpleChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
@@ -44,7 +42,7 @@ fun PieChart(
         tapGestures = tapGestures,
         contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
-        content = { content() }
+        content = content
     ) {
         PieComponent(spec = spec)
     }

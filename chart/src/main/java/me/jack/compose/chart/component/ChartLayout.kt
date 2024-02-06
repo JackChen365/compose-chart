@@ -66,6 +66,8 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+val simpleChartContent: @Composable SingleChartScope<*>.() -> Unit = { ChartContent() }
+
 @Composable
 fun <T> SingleChartLayout(
     modifier: Modifier,
@@ -73,7 +75,7 @@ fun <T> SingleChartLayout(
     chartDataset: ChartDataset<T>,
     tapGestures: TapGestures<T> = TapGestures(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
-    content: @Composable (SingleChartScope<T>.() -> Unit) = { ChartContent() },
+    content: @Composable (SingleChartScope<T>.() -> Unit) = simpleChartContent,
     chartContent: @Composable SingleChartScope<T>.() -> Unit
 ) {
     @Suppress("DEPRECATION")
@@ -158,7 +160,7 @@ private fun <T> SingleChartContent(
         )
     }
     chartScopeInstance.chartContent = {
-        ChartBox { chartContent() }
+        ChartBox(modifier = modifier) { chartContent() }
     }
     content?.invoke(chartScopeInstance)
 }
@@ -642,7 +644,7 @@ fun measureContentWithChartAnchor(
     }
     return ChartMeasureResult(
         centerRect = contentRect,
-        placeables = placeables.filterNotNull()
+        placeables = placeables
     )
 }
 

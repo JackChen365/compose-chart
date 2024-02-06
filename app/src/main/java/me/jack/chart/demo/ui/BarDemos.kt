@@ -2,15 +2,11 @@ package me.jack.chart.demo.ui
 
 import android.widget.Toast
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -35,7 +31,7 @@ import me.jack.compose.chart.measure.fixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.SimpleBarData
-import me.jack.compose.chart.model.chartDataGroup
+import me.jack.compose.chart.model.rememberChartDataGroup
 import me.jack.compose.chart.model.forEach
 import kotlin.random.Random
 
@@ -133,8 +129,9 @@ class BarDemos {
         }
     }
 
+    @Composable
     private fun buildChartDataset(): ChartDataset<BarData> {
-        return chartDataGroup {
+        return rememberChartDataGroup {
             repeat(3) { chartIndex ->
                 dataset("Group:$chartIndex") {
                     items(50) {
@@ -153,8 +150,9 @@ class BarDemos {
         }
     }
 
+    @Composable
     private fun buildAnimatableChartDataset(scope: CoroutineScope): ChartDataset<BarData> {
-        return chartDataGroup {
+        return rememberChartDataGroup {
             repeat(3) { chartIndex ->
                 animatableDataset(scope, "Group:$chartIndex") {
                     items(50) {

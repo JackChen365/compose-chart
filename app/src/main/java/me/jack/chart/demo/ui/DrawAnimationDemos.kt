@@ -18,7 +18,7 @@ import me.jack.compose.chart.measure.boxBoxChartContentMeasurePolicy
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SINGLE_GROUP_NAME
 import me.jack.compose.chart.model.SimpleLineData
-import me.jack.compose.chart.model.chartDataGroup
+import me.jack.compose.chart.model.rememberChartDataGroup
 import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
 
@@ -27,7 +27,7 @@ class DrawAnimationDemos {
     @Preview
     @Composable
     fun DrawElementPreview() {
-        val dataset = chartDataGroup<LineData> {
+        val dataset = rememberChartDataGroup<LineData> {
             dataset(SINGLE_GROUP_NAME) {
                 items(1) {
                     SimpleLineData(

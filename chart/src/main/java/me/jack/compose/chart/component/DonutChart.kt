@@ -40,14 +40,14 @@ fun DonutChart(
     chartDataset: ChartDataset<DonutData>,
     spec: DonutSpec = DonutSpec(),
     tapGestures: TapGestures<DonutData> = TapGestures(),
-    content: @Composable SingleChartScope<DonutData>.() -> Unit = { ChartContent() }
+    content: @Composable SingleChartScope<DonutData>.() -> Unit = simpleChartContent
 ) {
     SingleChartLayout(modifier = modifier,
         chartDataset = chartDataset,
         tapGestures = tapGestures,
         contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
-        content = { content() }
+        content = content
     ) {
         DonutComponent(spec = spec)
     }

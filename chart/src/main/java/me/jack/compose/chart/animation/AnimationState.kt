@@ -17,6 +17,24 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.reflect.KProperty
 
+/**
+ * Fire-and-forget animation function for [Int]. This function is overloaded for
+ * different parameter types such as [Float], [Color][androidx.compose.ui.graphics.Color], [Offset],
+ * etc. When the provided [ChartAnimatableState.value] is changed, the animation will run automatically. If there
+ * is already an animation in-flight when [ChartAnimatableState.value] changes, the on-going animation will adjust
+ * course to animate towards the new target value.
+ * You are not supposed to use this [ChartIntAnimatableState] directly, we use it [ChartCanvas]
+ *
+ * ```
+ * ChartCanvas(modifier = Modifier.fillMaxSize()){
+ *      drawRect(
+ *          color = Color.Red whenPressedAnimateTo Color.Blue,
+ *          topLeft = Offset(x = 10f,y = 10f) whenPressedAnimateTo Offset(x = 100f,y = 10f),
+ *          size = Size(100f,100f)
+ *      )
+ * }
+ * ```
+ */
 fun intAnimatableState(
     scope: CoroutineScope,
     initialValue: Int = 0,

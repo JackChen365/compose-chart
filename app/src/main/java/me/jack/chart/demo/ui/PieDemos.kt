@@ -18,7 +18,7 @@ import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.model.SINGLE_GROUP_NAME
 import me.jack.compose.chart.model.SimplePieData
-import me.jack.compose.chart.model.chartDataGroup
+import me.jack.compose.chart.model.rememberChartDataGroup
 import kotlin.random.Random
 
 class PieDemos {
@@ -48,8 +48,9 @@ class PieDemos {
         }
     }
 
+    @Composable
     private fun buildChartDataset(): ChartDataset<PieData> {
-        return chartDataGroup {
+        return rememberChartDataGroup {
             repeat(3) {
                 val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
                 dataset("Group:$it") {
@@ -65,8 +66,9 @@ class PieDemos {
         }
     }
 
+    @Composable
     private fun buildChartSingleDataset(): ChartDataset<PieData> {
-        return chartDataGroup {
+        return rememberChartDataGroup {
             dataset(SINGLE_GROUP_NAME) {
                 items(5) { index ->
                     SimplePieData(

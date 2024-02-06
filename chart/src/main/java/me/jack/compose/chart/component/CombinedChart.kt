@@ -56,7 +56,7 @@ fun CombinedChart(
     modifier: Modifier = Modifier,
     chartContext: ChartContext = ChartContext,
     contentMeasurePolicy: ChartContentMeasurePolicy,
-    componentContent: ChartComponentScope.() -> Unit = { },
+    componentContent: @Composable ChartComponentScope.() -> Unit = { },
     content: @Composable ChartScope.() -> Unit = { }
 ) {
     val componentScope = ChartComponentScope()

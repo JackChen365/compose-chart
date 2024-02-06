@@ -29,27 +29,29 @@ import me.jack.compose.chart.model.SimpleBarData
 import me.jack.compose.chart.model.SimpleLineData
 import me.jack.compose.chart.model.forEach
 import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.simpleChartDataset
+import me.jack.compose.chart.model.rememberSimpleChartDataset
 import kotlin.random.Random
 
 class CombinedChartDemos {
 
+    @Composable
     private fun buildLineChartDataset(
         barDataset: ChartDataset<BarData>
     ): ChartDataset<LineData> {
-        val dataset = simpleChartDataset<LineData>()
+        val dataset = rememberSimpleChartDataset<LineData>()
         barDataset.forEachGroup { chartGroup ->
             val newDataset = mutableListOf<LineData>()
             barDataset.forEach(chartGroup) { data ->
                 newDataset.add(SimpleLineData(value = data.value, color = data.color))
             }
-            dataset.addChartData(chartGroup, newDataset)
+            dataset.addChartGroupData(chartGroup, newDataset)
         }
         return dataset
     }
 
+    @Composable
     private fun buildBarChartDataset(): ChartDataset<BarData> {
-        val barDataset = simpleChartDataset<BarData>()
+        val barDataset = rememberSimpleChartDataset<BarData>()
         repeat(3) {
             val barDataList = mutableListOf<BarData>()
             val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
@@ -61,7 +63,7 @@ class CombinedChartDemos {
                     )
                 )
             }
-            barDataset.addChartData("Group:$it", barDataList)
+            barDataset.addChartGroupData("Group:$it", barDataList)
         }
         return barDataset
     }

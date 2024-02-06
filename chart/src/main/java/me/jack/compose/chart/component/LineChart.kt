@@ -28,6 +28,7 @@ import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
 import me.jack.compose.chart.scope.fastForEachWithNext
@@ -50,6 +51,22 @@ class CurveLineSpec(
     val style: DrawStyle = Fill
 )
 
+val lineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
+    ChartBorderComponent()
+    ChartGridDividerComponent()
+    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartIndicatorComponent()
+    ChartContent()
+}
+
+val curveLineChartContent: @Composable LineChartScope.() -> Unit = {
+    ChartBorderComponent()
+    ChartGridDividerComponent()
+    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartIndicatorComponent()
+    ChartContent()
+}
+
 @Composable
 fun SimpleLineChart(
     modifier: Modifier = Modifier,
@@ -57,7 +74,7 @@ fun SimpleLineChart(
     lineSpec: LineSpec = LineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable SingleChartScope<LineData>.() -> Unit = { ChartContent() }
+    content: @Composable SingleChartScope<LineData>.() -> Unit = simpleChartContent
 ) {
     LineChart(
         modifier = modifier,
@@ -76,13 +93,7 @@ fun LineChart(
     lineSpec: LineSpec = LineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable SingleChartScope<LineData>.() -> Unit = {
-        ChartBorderComponent()
-        ChartGridDividerComponent()
-        ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
-        ChartIndicatorComponent()
-        ChartContent()
-    }
+    content: @Composable SingleChartScope<LineData>.() -> Unit = lineChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
@@ -202,7 +213,7 @@ fun SimpleCurveLineChart(
     lineSpec: CurveLineSpec = CurveLineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable SingleChartScope<LineData>.() -> Unit = { ChartContent() }
+    content: @Composable SingleChartScope<LineData>.() -> Unit = simpleChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
@@ -226,13 +237,7 @@ fun CurveLineChart(
     lineSpec: CurveLineSpec = CurveLineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable SingleChartScope<LineData>.() -> Unit = {
-        ChartBorderComponent()
-        ChartGridDividerComponent()
-        ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
-        ChartIndicatorComponent()
-        ChartContent()
-    }
+    content: @Composable LineChartScope.() -> Unit = curveLineChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
@@ -240,9 +245,12 @@ fun CurveLineChart(
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
+            .scrollable(
+                orientation = contentMeasurePolicy.orientation,
+                state = rememberScrollState()
+            )
             .zoom(),
-        content = { content() },
+        content = content,
         chartContent = {
             CurveLineComponent(lineSpec)
             LineMarkerComponent()
@@ -272,8 +280,8 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(spec: CurveLineSpec) 
         val start = max(0, range.first - 1)
         val end = range.last + 1
         fastForEachWithNext(start, end) { current, next ->
-            val currentOffset = childCenterOffset.copy(y = current.value * lineItemSize)
-            val nextOffset = nextChildCenterOffset.copy(y = next.value * lineItemSize)
+            val currentOffset = childCenterOffset.copy(y = size.height - current.value * lineItemSize)
+            val nextOffset = nextChildCenterOffset.copy(y = size.height - next.value * lineItemSize)
             val firstControlPoint = Offset(
                 x = currentOffset.x + (nextOffset.x - currentOffset.x) / 2F,
                 y = currentOffset.y,

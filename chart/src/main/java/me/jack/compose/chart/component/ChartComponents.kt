@@ -1,5 +1,6 @@
 package me.jack.compose.chart.component
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,11 +22,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import me.jack.compose.chart.animation.floatAnimatableState
 import me.jack.compose.chart.context.ChartScrollState
 import me.jack.compose.chart.context.isElementAvailable
 import me.jack.compose.chart.context.requireChartScrollState
+import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.ChartScope
+import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.chartChildDivider
 import me.jack.compose.chart.scope.chartGroupDivider
 import me.jack.compose.chart.scope.chartGroupOffsets
@@ -296,16 +300,14 @@ fun Modifier.chartCrossAxisSize(
 }
 
 @Composable
-fun ChartScope.ChartAverageAcrossRanksComponent(
+fun SingleChartScope<*>.ChartAverageAcrossRanksComponent(
     level: Int = 10,
     size: Dp = 32.dp,
     maxValueEvaluator: () -> Float
 ) {
-    val maxValue = remember(maxValueEvaluator) {
-        maxValueEvaluator()
-    }
+    val maxValue = maxValueEvaluator()
     val textMeasurer = rememberTextMeasurer()
-    Canvas(
+    ChartCanvas(
         modifier = Modifier
             .clipToBounds()
             .chartCrossAxisSize(this, size)

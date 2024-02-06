@@ -1,5 +1,13 @@
 package me.jack.compose.chart.model
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
 import me.jack.compose.chart.animation.ChartAnimatableState
@@ -19,16 +27,32 @@ import kotlin.math.min
 
 const val SINGLE_GROUP_NAME = "#"
 fun <T> List<T>.asChartDataset(): ChartDataset<T> =
-    MutableChartDataset<T>().also { it.addChartData(SINGLE_GROUP_NAME, this) }
+    MutableChartDataset<T>().also { it.addChartGroupData(SINGLE_GROUP_NAME, this) }
 
-fun <T> simpleChartDataset(): ChartDataset<T> {
-    return MutableChartDataset()
+@Composable
+fun <T> rememberSimpleChartDataset(): MutableChartDataset<T> {
+    return remember {
+        MutableChartDataset()
+    }
 }
 
-fun <T> chartDataGroup(block: ChartDataGroupBuilder<T>.() -> Unit): ChartDataset<T> {
-    val datasetBuilder = ChartDataGroupBuilder<T>()
-    block.invoke(datasetBuilder)
-    return datasetBuilder.getChartDataset()
+@Composable
+fun <T> rememberChartDataGroup(block: ChartDataGroupBuilder<T>.() -> Unit): ChartDataset<T> {
+    return remember {
+        val datasetBuilder = ChartDataGroupBuilder<T>()
+        block.invoke(datasetBuilder)
+        datasetBuilder.getChartDataset()
+    }
+}
+
+@Composable
+fun <T> rememberChartMutableDataGroup(block: ChartDataGroupBuilder<T>.() -> Unit): MutableChartDataset<T> {
+    return remember {
+        val datasetBuilder = ChartDataGroupBuilder<T>()
+        block.invoke(datasetBuilder)
+        val chartDataset = datasetBuilder.getChartDataset()
+        chartDataset as MutableChartDataset<T>
+    }
 }
 
 @DslMarker
@@ -41,113 +65,103 @@ class ChartDataGroupBuilder<T> {
     fun dataset(chartGroup: String, block: DatasetBuilder<T>.() -> Unit) {
         val datasetBuilder = DatasetBuilder<T>()
         block.invoke(datasetBuilder)
-        chartDataset.addChartData(chartGroup = chartGroup, chartData = datasetBuilder.getDataset())
+        chartDataset.addChartGroupData(chartGroup = chartGroup, chartData = datasetBuilder.getDataset())
     }
 
     fun animatableDataset(
-        scope: CoroutineScope,
-        chartGroup: String,
-        block: DatasetBuilder<T>.() -> Unit
+        scope: CoroutineScope, chartGroup: String, block: DatasetBuilder<T>.() -> Unit
     ) {
         val datasetBuilder = DatasetBuilder<T>()
         block.invoke(datasetBuilder)
         val dataset = datasetBuilder.getDataset()
         val animatableItems = dataset.map { getAnimatableDelegateItem(scope, it) }
-        chartDataset.addChartData(chartGroup = chartGroup, chartData = animatableItems)
+        chartDataset.addChartGroupData(chartGroup = chartGroup, chartData = animatableItems)
     }
 
     @Suppress("UNCHECKED_CAST")
     private fun getAnimatableDelegateItem(scope: CoroutineScope, item: T): T {
         val itemClass = item!!::class.java
         val itemAnimatableFields = mutableMapOf<String, ChartAnimatableState<*, *>>()
-        return Proxy.newProxyInstance(
-            itemClass.classLoader,
-            itemClass.interfaces,
-            object : InvocationHandler {
-                override fun invoke(proxy: Any?, method: Method, args: Array<out Any>?): Any? {
-                    val propertyName = resolvePropertyName(method.name)
-                    if (method.name.startsWith("set")) {
-                        val firstArgument = args?.firstOrNull()
-                        checkNotNull(firstArgument)
-                        val animatableState =
-                            getPropertyAnimatableField(item, propertyName, firstArgument::class.java)
-                        if (null != animatableState) {
-                            setAnimatableFieldValue(animatableState, firstArgument)
-                        }
-                    } else if (method.name.startsWith("get")) {
-                        val animatableState =
-                            getPropertyAnimatableField(item, propertyName, method.returnType)
-                        if (null != animatableState) {
-                            return animatableState.value
-                        }
+        return Proxy.newProxyInstance(itemClass.classLoader, itemClass.interfaces, object : InvocationHandler {
+            override fun invoke(proxy: Any?, method: Method, args: Array<out Any>?): Any? {
+                val propertyName = resolvePropertyName(method.name)
+                if (method.name.startsWith("set")) {
+                    val firstArgument = args?.firstOrNull()
+                    checkNotNull(firstArgument)
+                    val animatableState = getPropertyAnimatableField(item, propertyName, firstArgument::class.java)
+                    if (null != animatableState) {
+                        setAnimatableFieldValue(animatableState, firstArgument)
                     }
-                    return if (null != args) {
-                        method.invoke(item, *args)
-                    } else {
-                        method.invoke(item)
+                } else if (method.name.startsWith("get")) {
+                    val animatableState = getPropertyAnimatableField(item, propertyName, method.returnType)
+                    if (null != animatableState) {
+                        return animatableState.value
                     }
                 }
-
-                private fun setAnimatableFieldValue(animatableState: ChartAnimatableState<*, *>, value: Any) {
-                    when (animatableState) {
-                        is ChartColorAnimatableState -> {
-                            animatableState.value = value as Color
-                        }
-
-                        is ChartIntAnimatableState -> {
-                            animatableState.value = value as Int
-                        }
-
-                        is ChartFloatAnimatableState -> {
-                            animatableState.value = value as Float
-                        }
-                    }
-                }
-
-                private fun getPropertyAnimatableField(
-                    item: T,
-                    propertyName: String,
-                    propertyType: Class<*>
-                ): ChartAnimatableState<*, *>? {
-                    val key = propertyName + System.identityHashCode(item)
-                    var animatableState = itemAnimatableFields[key]
-                    if (null == animatableState) {
-                        animatableState = when (propertyType) {
-                            Color::class.java -> {
-                                colorAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
-                            }
-
-                            Float::class.java -> {
-                                floatAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
-                            }
-
-                            Int::class.java -> {
-                                intAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
-                            }
-
-                            else -> null
-                        }
-                        if (null != animatableState) {
-                            itemAnimatableFields[key] = animatableState
-                        }
-                    }
-                    return animatableState
-                }
-
-                private fun resolvePropertyName(name: String): String {
-                    return if (name.startsWith("set")) {
-                        name.substringAfterLast("set")
-                    } else if (name.startsWith("get")) {
-                        name.substringAfterLast("get")
-                    } else name
-                }
-
-                fun <R> readInstanceProperty(instance: Any, propertyName: String): R {
-                    val getPropertyValueMethod = instance::class.java.getMethod("get$propertyName")
-                    return getPropertyValueMethod.invoke(instance) as R
+                return if (null != args) {
+                    method.invoke(item, *args)
+                } else {
+                    method.invoke(item)
                 }
             }
-        ) as T
+
+            private fun setAnimatableFieldValue(animatableState: ChartAnimatableState<*, *>, value: Any) {
+                when (animatableState) {
+                    is ChartColorAnimatableState -> {
+                        animatableState.value = value as Color
+                    }
+
+                    is ChartIntAnimatableState -> {
+                        animatableState.value = value as Int
+                    }
+
+                    is ChartFloatAnimatableState -> {
+                        animatableState.value = value as Float
+                    }
+                }
+            }
+
+            private fun getPropertyAnimatableField(
+                item: T, propertyName: String, propertyType: Class<*>
+            ): ChartAnimatableState<*, *>? {
+                val key = propertyName + System.identityHashCode(item)
+                var animatableState = itemAnimatableFields[key]
+                if (null == animatableState) {
+                    animatableState = when (propertyType) {
+                        Color::class.java -> {
+                            colorAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                        }
+
+                        Float::class.java -> {
+                            floatAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                        }
+
+                        Int::class.java -> {
+                            intAnimatableState(scope, readInstanceProperty(item as Any, propertyName))
+                        }
+
+                        else -> null
+                    }
+                    if (null != animatableState) {
+                        itemAnimatableFields[key] = animatableState
+                    }
+                }
+                return animatableState
+            }
+
+            private fun resolvePropertyName(name: String): String {
+                return if (name.startsWith("set")) {
+                    name.substringAfterLast("set")
+                } else if (name.startsWith("get")) {
+                    name.substringAfterLast("get")
+                } else name
+            }
+
+            fun <R> readInstanceProperty(instance: Any, propertyName: String): R {
+                val getPropertyValueMethod = instance::class.java.getMethod("get$propertyName")
+                return getPropertyValueMethod.invoke(instance) as R
+            }
+        }) as T
     }
 
     class DatasetBuilder<T> {
@@ -196,8 +210,7 @@ inline fun <T> ChartDataset<T>.forEach(
 }
 
 inline fun <T> ChartDataset<T>.forEach(
-    chartGroup: String = SINGLE_GROUP_NAME,
-    action: ChartDatasetAccessScope.(T) -> Unit
+    chartGroup: String = SINGLE_GROUP_NAME, action: ChartDatasetAccessScope.(T) -> Unit
 ) {
     ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
     ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
@@ -217,6 +230,8 @@ inline fun <T> ChartDataset<T>.forEach(
     val dataset = this[chartGroup]
     var index = start
     val dataSize = min(size, end)
+    ChartDatasetAccessScopeInstance.internalFirstVisibleItem = start
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = dataSize
     ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
     ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
     while (index < dataSize) {
@@ -237,6 +252,8 @@ inline fun <T> ChartDataset<T>.forEachWithNext(
     val dataset = this[chartGroup]
     var index = start
     val dataSize = min(size, end)
+    ChartDatasetAccessScopeInstance.internalFirstVisibleItem = start
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = dataSize
     ChartDatasetAccessScopeInstance.internalChartGroup = chartGroup
     ChartDatasetAccessScopeInstance.groupIndex = chartGroups.indexOf(chartGroup)
     while (index + 1 < dataSize) {
@@ -341,18 +358,15 @@ interface ChartDataset<T> {
 
     fun transformDataset(action: (List<T>) -> List<T>)
 
-    fun addChartData(chartGroup: String, chartData: List<T>)
-
     fun getChartGroupData(currentIndex: Int): List<T>
 }
 
-private open class MutableChartDataset<T> : ChartDataset<T> {
-
-    private val internalMutableChartDataset = mutableMapOf<String, List<T>>()
-    override val dataset: MutableMap<String, List<T>>
+open class MutableChartDataset<T> : ChartDataset<T> {
+    private val internalMutableChartDataset = SnapshotStateMap<String, SnapshotStateList<T>>()
+    override val dataset: Map<String, SnapshotStateList<T>>
         get() = internalMutableChartDataset
 
-    private var chartDatasetSize = 0
+    private var chartDatasetSize by mutableIntStateOf(0)
     override val size: Int
         get() = chartDatasetSize
 
@@ -370,21 +384,46 @@ private open class MutableChartDataset<T> : ChartDataset<T> {
         return chartGroupData
     }
 
-    override fun addChartData(chartGroup: String, chartData: List<T>) {
-        if (0 == chartDatasetSize) {
-            chartDatasetSize = chartData.size
+    fun addChartGroupData(chartGroup: String, chartData: List<T>) {
+        if (chartData is SnapshotStateList) {
+            internalMutableChartDataset[chartGroup] = chartData
+        } else {
+            internalMutableChartDataset[chartGroup] = chartData.toMutableStateList()
         }
-        assert(chartData.size == chartDatasetSize)
-        internalMutableChartDataset[chartGroup] = chartData
+        chartDatasetSize = if (internalMutableChartDataset.isEmpty()) {
+            chartData.size
+        } else {
+            max(chartData.size, internalMutableChartDataset.values.maxOf { it.size })
+        }
+    }
+
+    fun removeChartGroupData(chartGroup: String) {
+        internalMutableChartDataset.remove(chartGroup)
+        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
+    }
+
+    fun addChartData(chartGroup: String, chartData: T) {
+        internalMutableChartDataset[chartGroup]?.add(chartData)
+        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
+    }
+
+    fun removeChartData(chartGroup: String, chartData: T) {
+        internalMutableChartDataset[chartGroup]?.remove(chartData)
+        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
+    }
+
+    fun removeChartData(chartGroup: String, index: Int) {
+        internalMutableChartDataset[chartGroup]?.removeAt(index)
+        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
 
     override fun transformDataset(action: (List<T>) -> List<T>) {
         forEachGroup { groupName ->
             val dataset = dataset[groupName]
             if (null != dataset) {
-                internalMutableChartDataset[groupName] = action(dataset)
+                internalMutableChartDataset[groupName] = action(dataset).toMutableStateList()
             }
         }
+        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
-
 }

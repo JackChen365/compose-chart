@@ -18,12 +18,13 @@ import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.asChartDataset
-import me.jack.compose.chart.model.simpleChartDataset
+import me.jack.compose.chart.model.rememberSimpleChartDataset
 import kotlin.random.Random
 
 class DonutDemos {
+    @Composable
     private fun buildChartDataset(): ChartDataset<DonutData> {
-        val dataset = simpleChartDataset<DonutData>()
+        val dataset = rememberSimpleChartDataset<DonutData>()
         repeat(3) {
             val dataList = mutableListOf<DonutData>()
             repeat(5) { index ->
@@ -35,7 +36,7 @@ class DonutDemos {
                     )
                 )
             }
-            dataset.addChartData("Group:$it", dataList)
+            dataset.addChartGroupData("Group:$it", dataList)
         }
         return dataset
     }
