@@ -136,7 +136,7 @@ class LineDemos {
             scope.launch {
                 while (true) {
                     delay(1000L)
-                    fastForEach { _, current ->
+                    fastForEach { current ->
                         current.value = 10 + Random.nextInt(10, 50).toFloat()
                     }
                 }

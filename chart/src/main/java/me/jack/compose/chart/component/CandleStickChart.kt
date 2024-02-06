@@ -111,7 +111,7 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
         val candleBlockSize = size.height / highestValue
         var offset = -scrollState.firstVisibleItemOffset
         // we calculate the lastVisibleItem due to other places need it.
-        fastForEach { _, candleData ->
+        fastForEach { candleData ->
             clickableRect(
                 topLeft = Offset(
                     x = offset,

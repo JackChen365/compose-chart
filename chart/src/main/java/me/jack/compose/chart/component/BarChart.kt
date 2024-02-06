@@ -98,7 +98,7 @@ fun SingleChartScope<BarData>.BarComponent() {
         modifier = Modifier.fillMaxSize()
     ) {
         val barItemSize = size.crossAxis / maxValue
-        fastForEach { _, barData ->
+        fastForEach { barData ->
             clickable {
                 if (isHorizontal) {
                     drawRect(
@@ -129,7 +129,7 @@ fun SingleChartScope<BarData>.BarStackComponent() {
     ChartCanvas(modifier = Modifier.fillMaxSize()) {
         var offset = 0f
         val barItemSize = size.crossAxis / maxValue
-        fastForEachByIndex { _, barData ->
+        fastForEachByIndex { barData ->
             val (topLeft, rectSize) = if (isHorizontal) {
                 Offset(
                     currentLeftTopOffset.x, size.height - offset - barItemSize * barData.value

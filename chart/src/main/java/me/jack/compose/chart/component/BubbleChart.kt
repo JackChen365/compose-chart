@@ -129,7 +129,7 @@ private fun SingleChartScope<BubbleData>.BubbleComponent(
         modifier = Modifier.fillMaxSize()
     ) {
         val bubbleItemSize = size.height / maxValue
-        fastForEach { _, current ->
+        fastForEach { current ->
             clickable {
                 drawCircle(
                     color = current.color whenPressedAnimateTo current.color.copy(alpha = 0.8f),

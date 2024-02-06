@@ -139,7 +139,7 @@ private fun ChartDrawScope<LineData>.horizontalLineChart(
 ) = with(singleChartScope) {
     val lineItemSize = size.crossAxis / maxValue
     val circleRadiusPx = lineSpec.circleRadius.toPx()
-    fastForEachWithNext { _, current, next ->
+    fastForEachWithNext { current, next ->
         drawLine(
             color = current.color,
             start = if (isHorizontal) Offset(
@@ -271,7 +271,7 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(spec: CurveLineSpec) 
         val lineItemSize = size.crossAxis / maxValue
         val start = max(0, range.first - 1)
         val end = range.last + 1
-        fastForEachWithNext(start, end) { _, current, next ->
+        fastForEachWithNext(start, end) { current, next ->
             val currentOffset = childCenterOffset.copy(y = current.value * lineItemSize)
             val nextOffset = nextChildCenterOffset.copy(y = next.value * lineItemSize)
             val firstControlPoint = Offset(

@@ -44,7 +44,7 @@ class DrawAnimationDemos {
             contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
         ) {
             ChartCanvas(Modifier.fillMaxSize()) {
-                fastForEach { _, _ ->
+                fastForEach { _ ->
                     clickable {
                         drawCircle(
                             color = Color.Red whenPressedAnimateTo Color.Red.copy(alpha = 0.4f),

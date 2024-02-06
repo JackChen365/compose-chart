@@ -268,7 +268,7 @@ object ChartDatasetAccessScopeInstance : ChartDatasetAccessScope {
 }
 
 inline fun <T> SingleChartScope<T>.fastForEach(
-    action: ChartDatasetAccessScope.(chartGroup: String, T) -> Unit
+    action: ChartDatasetAccessScope.(current: T) -> Unit
 ) {
     val range = currentRange
     ChartDatasetAccessScopeInstance.internalFirstVisibleItem = range.first
@@ -279,13 +279,13 @@ inline fun <T> SingleChartScope<T>.fastForEach(
             start = range.first,
             end = range.last + 1
         ) { currentItem ->
-            action(chartGroup, currentItem)
+            action(currentItem)
         }
     }
 }
 
 inline fun <T> SingleChartScope<T>.fastForEachByIndex(
-    action: ChartDatasetAccessScope.(chartGroup: String, T) -> Unit
+    action: ChartDatasetAccessScope.(T) -> Unit
 ) {
     val range = currentRange
     ChartDatasetAccessScopeInstance.internalFirstVisibleItem = range.first
@@ -299,7 +299,7 @@ inline fun <T> SingleChartScope<T>.fastForEachByIndex(
             ChartDatasetAccessScopeInstance.internalCurrentItem = item
             ChartDatasetAccessScopeInstance.groupIndex = groupIndex
             ChartDatasetAccessScopeInstance.index = index
-            action(ChartDatasetAccessScopeInstance, chartGroup, item)
+            action(ChartDatasetAccessScopeInstance, item)
         }
     }
 }
@@ -307,7 +307,7 @@ inline fun <T> SingleChartScope<T>.fastForEachByIndex(
 inline fun <T> SingleChartScope<T>.fastForEachWithNext(
     start: Int = max(0, currentRange.first - 1),
     end: Int = currentRange.last + 1,
-    action: ChartDatasetAccessScope.(chartGroup: String, current: T, next: T) -> Unit
+    action: ChartDatasetAccessScope.(current: T, next: T) -> Unit
 ) {
     ChartDatasetAccessScopeInstance.internalFirstVisibleItem = start
     ChartDatasetAccessScopeInstance.internalLastVisibleItem = end
@@ -323,7 +323,7 @@ inline fun <T> SingleChartScope<T>.fastForEachWithNext(
             ChartDatasetAccessScopeInstance.internalCurrentItem = current
             ChartDatasetAccessScopeInstance.groupIndex = groupIndex
             ChartDatasetAccessScopeInstance.index = index
-            action(ChartDatasetAccessScopeInstance, chartGroup, current, next)
+            action(ChartDatasetAccessScopeInstance, current, next)
         }
     }
 }

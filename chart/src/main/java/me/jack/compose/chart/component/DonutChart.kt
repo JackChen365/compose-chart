@@ -70,7 +70,7 @@ fun SingleChartScope<DonutData>.DonutComponent(
             width = size.minDimension - strokeWidthPx,
             height = size.minDimension - strokeWidthPx
         )
-        fastForEach { _, pieData ->
+        fastForEach { pieData ->
             val sweepAngle = pieData.value / degreesValue
             clickable {
                 drawArc(

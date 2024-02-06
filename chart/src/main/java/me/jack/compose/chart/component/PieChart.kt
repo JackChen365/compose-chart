@@ -63,7 +63,7 @@ private fun SingleChartScope<PieData>.PieComponent(
     ) {
         var angleOffset = 0f
         val arcSize = Size(size.minDimension, size.minDimension)
-        fastForEach { _, pieData ->
+        fastForEach { pieData ->
             val sweepAngle = pieData.value / degreesValue
             clickable {
                 drawArc(
