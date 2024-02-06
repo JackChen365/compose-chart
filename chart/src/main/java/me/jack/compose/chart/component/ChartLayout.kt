@@ -12,6 +12,7 @@ import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -157,31 +158,39 @@ private fun <T> SingleChartContent(
         )
     }
     chartScopeInstance.chartContent = {
-        Box(
-            modifier = modifier
-                .fillMaxSize()
-                .clipToBounds()
-                .chartZoom(chartContext) { _, zoom ->
-                    val currentChartScrollState = chartScrollState
-                    if (null != currentChartScrollState) {
-                        val newOffset = currentChartScrollState.offset * zoom
-                        val minOffset = chartScopeInstance.contentSize.times(zoom).mainAxis -
-                                chartScopeInstance.contentRange.times(zoom).mainAxis
-                        currentChartScrollState.offset = newOffset.coerceIn(minOffset, 0f)
-                    }
-                }
-                .chartScrollable(
-                    chartScope = chartScopeInstance,
-                    contentMeasurePolicy = wrappedContentMeasurePolicy,
-                    datasetSize = chartDataset.size
-                )
-                .chartIndication(chartContext)
-                .chartPointerInput(chartContext)
-        ) {
-            chartContent()
-        }
+        ChartBox { chartContent() }
     }
     content?.invoke(chartScopeInstance)
+}
+
+@Composable
+fun <T> SingleChartScope<T>.ChartBox(
+    modifier: Modifier = Modifier,
+    chartContext: ChartContext = this.chartContext,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .clipToBounds()
+            .chartZoom(chartContext) { _, zoom ->
+                val currentChartScrollState = chartScrollState
+                if (null != currentChartScrollState) {
+                    val newOffset = currentChartScrollState.offset * zoom
+                    val minOffset = contentSize.times(zoom).mainAxis -
+                            contentRange.times(zoom).mainAxis
+                    currentChartScrollState.offset = newOffset.coerceIn(minOffset, 0f)
+                }
+            }
+            .chartScrollable(
+                chartScope = this,
+                contentMeasurePolicy = contentMeasurePolicy,
+                datasetSize = chartDataset.size
+            )
+            .chartIndication(chartContext)
+            .chartPointerInput(chartContext),
+        content = content
+    )
 }
 
 @Composable

@@ -21,32 +21,32 @@ class ChartComponentScope {
     fun barChart(
         chartDataset: ChartDataset<BarData>,
         tapGestures: TapGestures<BarData>,
-        content: @Composable SingleChartScope<BarData>.() -> Unit = { }
+        content: @Composable SingleChartScope<BarData>.() -> Unit = {
+            BarComponent()
+        }
     ) {
         chartComponents.add(
             ChartComponent(
                 chartDataset = chartDataset,
                 tapGestures = tapGestures,
-            ) {
-                content()
-                BarComponent()
-            }
+                content = content
+            )
         )
     }
 
     fun lineChart(
         chartDataset: ChartDataset<LineData>,
         tapGestures: TapGestures<LineData>,
-        content: @Composable SingleChartScope<LineData>.() -> Unit = { }
+        content: @Composable SingleChartScope<LineData>.() -> Unit = {
+            ChartLineComponent()
+        }
     ) {
         chartComponents.add(
             ChartComponent(
                 chartDataset = chartDataset,
-                tapGestures = tapGestures
-            ) {
-                content()
-                ChartLineComponent()
-            }
+                tapGestures = tapGestures,
+                content = content
+            )
         )
     }
 }

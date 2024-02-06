@@ -18,6 +18,7 @@ import me.jack.compose.chart.measure.boxBoxChartContentMeasurePolicy
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.model.sumOf
+import me.jack.compose.chart.scope.PieChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 
@@ -50,7 +51,7 @@ fun PieChart(
 }
 
 @Composable
-private fun SingleChartScope<PieData>.PieComponent(
+private fun PieChartScope.PieComponent(
     modifier: Modifier = Modifier,
     spec: PieSpec = PieSpec()
 ) {

@@ -20,6 +20,7 @@ import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.model.SimplePieData
 import me.jack.compose.chart.model.sumOf
+import me.jack.compose.chart.scope.DonutChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 
@@ -53,7 +54,7 @@ fun DonutChart(
 }
 
 @Composable
-fun SingleChartScope<DonutData>.DonutComponent(
+fun DonutChartScope.DonutComponent(
     modifier: Modifier = Modifier,
     spec: DonutSpec = DonutSpec()
 ) {

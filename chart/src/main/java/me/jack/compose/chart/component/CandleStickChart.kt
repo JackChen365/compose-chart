@@ -3,11 +3,14 @@ package me.jack.compose.chart.component
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -31,6 +34,7 @@ import me.jack.compose.chart.model.CandleData
 import me.jack.compose.chart.model.asChartDataset
 import me.jack.compose.chart.model.maxOf
 import me.jack.compose.chart.model.minOf
+import me.jack.compose.chart.scope.CandleStickChartScope
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
@@ -98,7 +102,7 @@ fun CandleStickChart(
 }
 
 @Composable
-fun SingleChartScope<CandleData>.CandleStickComponent(
+fun CandleStickChartScope.CandleStickComponent(
     spec: CandleStickSpec = CandleStickSpec()
 ) {
     val scrollState = chartContext.requireChartScrollState
@@ -160,7 +164,7 @@ fun SingleChartScope<CandleData>.CandleStickComponent(
 }
 
 @Composable
-fun SingleChartScope<CandleData>.CandleDataMarkerComponent() {
+fun CandleStickChartScope.CandleDataMarkerComponent() {
     val pressInteraction = chartContext.pressInteractionState.value.asPressInteraction<CandleData>() ?: return
     val currentItem = pressInteraction.currentItem
     val drawElement = pressInteraction.drawElement
@@ -181,7 +185,7 @@ fun SingleChartScope<CandleData>.CandleDataMarkerComponent() {
 }
 
 @Composable
-fun SingleChartScope<CandleData>.CandleStickLeftSideLabel() {
+fun CandleStickChartScope.CandleStickLeftSideLabel() {
     val textMeasurer = rememberTextMeasurer()
     ChartCanvas(
         modifier = Modifier
@@ -215,5 +219,35 @@ fun SingleChartScope<CandleData>.CandleStickLeftSideLabel() {
                 size.height - textLayoutResult.size.height / 2f
             )
         )
+    }
+}
+
+@Composable
+fun CandleStickChartScope.CandleStickBarComponent(
+    context: ChartContext = chartContext,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    val maxValue = remember(chartDataset) {
+        chartDataset.maxOf { it.high }
+    }
+    ChartBox(
+        modifier = Modifier
+            .anchor(ChartAnchor.Bottom)
+            .height(120.dp)
+            .clipToBounds(),
+        chartContext = context
+    ) {
+        ChartCanvas(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val cancelStickSize = size.crossAxis / maxValue
+            fastForEach { cancelStickData ->
+                drawRect(
+                    color = color whenPressedAnimateTo color.copy(alpha = 0.4f),
+                    topLeft = Offset(currentLeftTopOffset.x, size.height - cancelStickSize * cancelStickData.open),
+                    size = Size(childSize.mainAxis, cancelStickSize * cancelStickData.open)
+                )
+            }
+        }
     }
 }

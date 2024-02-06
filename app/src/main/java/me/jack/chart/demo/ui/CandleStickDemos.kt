@@ -1,15 +1,22 @@
 package me.jack.chart.demo.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import me.jack.compose.chart.component.CandleStickBarComponent
 import me.jack.compose.chart.component.CandleStickChart
+import me.jack.compose.chart.component.CandleStickLeftSideLabel
+import me.jack.compose.chart.component.ChartBorderComponent
+import me.jack.compose.chart.component.ChartGridDividerComponent
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
+import me.jack.compose.chart.context.ChartInteractionHandler
+import me.jack.compose.chart.context.ChartZoomState
 import me.jack.compose.chart.model.CandleData
 import me.jack.compose.chart.model.SimpleCandleData
 import kotlin.random.Random
@@ -43,12 +50,23 @@ class CandleStickDemos {
             )
         }
         val context = LocalContext.current
-        CandleStickChart(
-            modifier = Modifier.requiredHeight(300.dp),
-            chartData = candleDataList,
-            tapGestures = TapGestures<CandleData>().onTap { currentItem ->
-                Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+        Column {
+            CandleStickChart(
+                modifier = Modifier.requiredHeight(240.dp),
+                chartData = candleDataList,
+                candleStickSize = 24.dp,
+                tapGestures = TapGestures<CandleData>().onTap { currentItem ->
+                    Toast.makeText(context, "onTap:${currentItem}", Toast.LENGTH_SHORT).show()
+                }
+            ) {
+                CandleStickLeftSideLabel()
+                ChartGridDividerComponent()
+                ChartBorderComponent()
+                CandleStickBarComponent(
+                    context = chartContext.minusKey(ChartZoomState).minusKey(ChartInteractionHandler)
+                )
+                ChartContent()
             }
-        )
+        }
     }
 }

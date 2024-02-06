@@ -21,6 +21,7 @@ import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.computeGroupTotalValues
 import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.BarChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.fastForEachByIndex
@@ -38,7 +39,7 @@ fun SimpleBarChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     barStyle: BarStyle = BarStyle.Normal,
     tapGestures: TapGestures<BarData> = TapGestures(),
-    content: @Composable SingleChartScope<BarData>.() -> Unit = { ChartContent() }
+    content: @Composable BarChartScope.() -> Unit = { ChartContent() }
 ) {
     BarChart(
         modifier = modifier,
@@ -57,7 +58,7 @@ fun BarChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     barStyle: BarStyle = BarStyle.Normal,
     tapGestures: TapGestures<BarData> = TapGestures(),
-    content: @Composable SingleChartScope<BarData>.() -> Unit = {
+    content: @Composable BarChartScope.() -> Unit = {
         ChartBorderComponent()
         ChartGridDividerComponent()
         ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
@@ -90,7 +91,7 @@ fun BarChart(
 }
 
 @Composable
-fun SingleChartScope<BarData>.BarComponent() {
+fun BarChartScope.BarComponent() {
     val maxValue = remember(chartDataset) {
         chartDataset.maxOf { it.value }
     }
@@ -119,7 +120,7 @@ fun SingleChartScope<BarData>.BarComponent() {
 }
 
 @Composable
-fun SingleChartScope<BarData>.BarStackComponent() {
+fun BarChartScope.BarStackComponent() {
     val sumValueSet = remember(chartDataset) {
         chartDataset.computeGroupTotalValues { it.value }
     }
@@ -150,7 +151,7 @@ fun SingleChartScope<BarData>.BarStackComponent() {
 }
 
 @Composable
-fun SingleChartScope<BarData>.BubbleMarkerComponent() {
+fun BarChartScope.BubbleMarkerComponent() {
     val pressInteraction = chartContext.pressInteractionState.value.asPressInteraction<BarData>() ?: return
     val currentGroupItems = pressInteraction.currentGroupItems
     val drawElement = pressInteraction.drawElement
