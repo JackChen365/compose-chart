@@ -15,9 +15,9 @@ import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.measure.boxBoxChartContentMeasurePolicy
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.PieData
-import me.jack.compose.chart.model.sumOf
+import me.jack.compose.chart.scope.sumOf
 import me.jack.compose.chart.scope.PieChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
@@ -38,10 +38,10 @@ fun PieChart(
 ) {
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartDataset,
+        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
         tapGestures = tapGestures,
         contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
+        chartDataset = chartDataset,
         content = content
     ) {
         PieComponent(spec = spec)

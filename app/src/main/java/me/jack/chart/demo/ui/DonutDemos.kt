@@ -16,9 +16,9 @@ import me.jack.compose.chart.component.DonutData
 import me.jack.compose.chart.component.SimpleDonutData
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
-import me.jack.compose.chart.model.ChartDataset
-import me.jack.compose.chart.model.asChartDataset
-import me.jack.compose.chart.model.rememberSimpleChartDataset
+import me.jack.compose.chart.scope.ChartDataset
+import me.jack.compose.chart.scope.asChartDataset
+import me.jack.compose.chart.scope.rememberSimpleChartDataset
 import kotlin.random.Random
 
 class DonutDemos {
@@ -36,7 +36,7 @@ class DonutDemos {
                     )
                 )
             }
-            dataset.addChartGroupData("Group:$it", dataList)
+            dataset.addGroupData("Group:$it", dataList)
         }
         return dataset
     }

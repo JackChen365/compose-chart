@@ -5,7 +5,7 @@ import androidx.compose.ui.Modifier
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.SingleChartScope

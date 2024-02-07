@@ -4,10 +4,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
 import me.jack.compose.chart.context.isHorizontal
-import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartScope
 
-fun ChartContentMeasurePolicy.asZoomableContentMeasurePolicy(
+fun ChartContentMeasurePolicy.withZoomableMeasurePolicy(
     onZoomValueChanged: () -> Float = { 1f }
 ): ChartContentMeasurePolicy {
     return ChartZoomContentMeasurePolicyDelegate(this, onZoomValueChanged)

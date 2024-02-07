@@ -16,9 +16,9 @@ import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.measure.boxBoxChartContentMeasurePolicy
 import me.jack.compose.chart.model.LineData
-import me.jack.compose.chart.model.SINGLE_GROUP_NAME
+import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
 import me.jack.compose.chart.model.SimpleLineData
-import me.jack.compose.chart.model.rememberChartDataGroup
+import me.jack.compose.chart.scope.rememberChartDataGroup
 import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
 
@@ -39,9 +39,9 @@ class DrawAnimationDemos {
         }
         SingleChartLayout(
             modifier = Modifier.fillMaxSize(),
-            chartDataset = dataset,
             chartContext = ChartContext.chartInteraction(MutableInteractionSource()),
             contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
+            chartDataset = dataset,
         ) {
             ChartCanvas(Modifier.fillMaxSize()) {
                 fastForEach { _ ->

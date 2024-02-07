@@ -21,17 +21,10 @@ import me.jack.compose.chart.context.isHorizontal
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
 import me.jack.compose.chart.model.CandleData
-import me.jack.compose.chart.model.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.PieData
-import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.forEachGroupIndexed
-import me.jack.compose.chart.model.forEachWithNext
-import java.awt.font.NumericShaper
 import java.util.Objects
 import kotlin.math.max
-import kotlin.math.min
 
 typealias LineChartScope = SingleChartScope<LineData>
 typealias BarChartScope = SingleChartScope<BarData>
@@ -73,7 +66,6 @@ class SingleChartScopeInstance<T>(
     override val tapGestures: TapGestures<T> = TapGestures(),
     override val contentMeasurePolicy: ChartContentMeasurePolicy,
 ) : SingleChartScope<T>, MutableScrollableScope {
-
     override var contentSize: Size = Size.Zero
     override var contentRange: Size = Size.Zero
 

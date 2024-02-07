@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -41,20 +42,24 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toSize
 import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.ChartInteractionHandler
+import me.jack.compose.chart.context.ChartScrollState
 import me.jack.compose.chart.context.ChartZoomState
 import me.jack.compose.chart.context.MutableChartScrollState
 import me.jack.compose.chart.context.chartScrollState
 import me.jack.compose.chart.context.chartZoomState
 import me.jack.compose.chart.context.isElementAvailable
+import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.requireChartZoomState
 import me.jack.compose.chart.interaction.ChartTapInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
-import me.jack.compose.chart.measure.asZoomableContentMeasurePolicy
 import me.jack.compose.chart.measure.withScrollMeasurePolicy
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.measure.withZoomableMeasurePolicy
 import me.jack.compose.chart.scope.ChartAnchor
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.ChartScopeInstance
+import me.jack.compose.chart.scope.LocalMarkedChartDataset
+import me.jack.compose.chart.scope.MarkedChartDataset
 import me.jack.compose.chart.scope.MutableScrollableScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.SingleChartScopeInstance
@@ -72,11 +77,11 @@ val simpleChartContent: @Composable SingleChartScope<*>.() -> Unit = { ChartCont
 fun <T> SingleChartLayout(
     modifier: Modifier,
     chartContext: ChartContext = ChartContext,
-    chartDataset: ChartDataset<T>,
     tapGestures: TapGestures<T> = TapGestures(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
-    content: @Composable (SingleChartScope<T>.() -> Unit) = simpleChartContent,
-    chartContent: @Composable SingleChartScope<T>.() -> Unit
+    chartDataset: ChartDataset<T>,
+    content: @Composable() (SingleChartScope<T>.() -> Unit) = simpleChartContent,
+    chartContent: @Composable() (SingleChartScope<T>.() -> Unit)
 ) {
     @Suppress("DEPRECATION")
     MultiMeasureLayout(
@@ -84,12 +89,10 @@ fun <T> SingleChartLayout(
         content = {
             SingleChartContent(
                 modifier = Modifier,
-                chartDataset = chartDataset,
-                tapGestures = tapGestures,
-                contentMeasurePolicy = contentMeasurePolicy.withScrollMeasurePolicy {
-                    chartContext.chartScrollState?.offset ?: 0f
-                },
                 chartContext = chartContext,
+                tapGestures = tapGestures,
+                contentMeasurePolicy = contentMeasurePolicy,
+                chartDataset = chartDataset,
                 content = content,
                 chartContent = chartContent
             )
@@ -138,25 +141,32 @@ fun CombinedChartLayout(
 private fun <T> SingleChartContent(
     modifier: Modifier,
     chartContext: ChartContext,
-    chartDataset: ChartDataset<T>,
     tapGestures: TapGestures<T>,
     contentMeasurePolicy: ChartContentMeasurePolicy,
+    chartDataset: ChartDataset<T>,
     content: @Composable (SingleChartScope<T>.() -> Unit)? = null,
-    chartContent: @Composable SingleChartScope<T>.() -> Unit
+    chartContent: @Composable (SingleChartScope<T>.() -> Unit)
 ) {
-    val wrappedContentMeasurePolicy = remember {
+    val rememberContentMeasurePolicy = remember {
+        var wrappedContentMeasurePolicy = contentMeasurePolicy
         if (chartContext.isElementAvailable(ChartZoomState)) {
-            contentMeasurePolicy.asZoomableContentMeasurePolicy { chartContext.requireChartZoomState.zoom }
-        } else {
-            contentMeasurePolicy
+            wrappedContentMeasurePolicy = wrappedContentMeasurePolicy.withZoomableMeasurePolicy {
+                chartContext.requireChartZoomState.zoom
+            }
         }
+        if (chartContext.isElementAvailable(ChartScrollState)) {
+            wrappedContentMeasurePolicy = wrappedContentMeasurePolicy.withScrollMeasurePolicy {
+                chartContext.requireChartScrollState.offset
+            }
+        }
+        wrappedContentMeasurePolicy
     }
     val chartScopeInstance = remember(chartDataset) {
         SingleChartScopeInstance(
             chartDataset = chartDataset,
             chartContext = chartContext,
             tapGestures = tapGestures,
-            contentMeasurePolicy = wrappedContentMeasurePolicy
+            contentMeasurePolicy = rememberContentMeasurePolicy
         )
     }
     chartScopeInstance.chartContent = {
@@ -214,7 +224,7 @@ private fun ChartContent(
             childItemCount = childItemCount,
             chartContext = chartContext,
             contentMeasurePolicy = if (chartContext.isElementAvailable(ChartZoomState)) {
-                contentMeasurePolicy.asZoomableContentMeasurePolicy { chartContext.requireChartZoomState.zoom }
+                contentMeasurePolicy.withZoomableMeasurePolicy { chartContext.requireChartZoomState.zoom }
             } else {
                 contentMeasurePolicy
             },
@@ -244,18 +254,23 @@ private fun ChartContent(
             .chartIndication(chartContext)
             .chartPointerInput(chartContext)
     ) {
+        val markedChartDataset = remember { MarkedChartDataset() }
         chartComponents.forEach { chartComponent ->
             val singleChartScopeInstance = SingleChartScopeInstance(
                 chartDataset = chartComponent.chartDataset,
                 chartContext = chartContext,
                 tapGestures = chartComponent.tapGestures,
                 contentMeasurePolicy = if (chartContext.isElementAvailable(ChartZoomState)) {
-                    contentMeasurePolicy.asZoomableContentMeasurePolicy { chartContext.requireChartZoomState.zoom }
+                    contentMeasurePolicy.withZoomableMeasurePolicy { chartContext.requireChartZoomState.zoom }
                 } else {
                     contentMeasurePolicy
                 }
             )
-            chartComponent.content.invoke(singleChartScopeInstance)
+            CompositionLocalProvider(
+                LocalMarkedChartDataset provides markedChartDataset,
+            ) {
+                chartComponent.content.invoke(singleChartScopeInstance)
+            }
         }
     }
 }

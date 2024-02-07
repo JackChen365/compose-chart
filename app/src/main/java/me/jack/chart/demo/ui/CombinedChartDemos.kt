@@ -23,13 +23,13 @@ import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.BarData
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SimpleBarData
 import me.jack.compose.chart.model.SimpleLineData
-import me.jack.compose.chart.model.forEach
-import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.rememberSimpleChartDataset
+import me.jack.compose.chart.scope.forEach
+import me.jack.compose.chart.scope.forEachGroup
+import me.jack.compose.chart.scope.rememberSimpleChartDataset
 import kotlin.random.Random
 
 class CombinedChartDemos {
@@ -44,7 +44,7 @@ class CombinedChartDemos {
             barDataset.forEach(chartGroup) { data ->
                 newDataset.add(SimpleLineData(value = data.value, color = data.color))
             }
-            dataset.addChartGroupData(chartGroup, newDataset)
+            dataset.addGroupData(chartGroup, newDataset)
         }
         return dataset
     }
@@ -63,7 +63,7 @@ class CombinedChartDemos {
                     )
                 )
             }
-            barDataset.addChartGroupData("Group:$it", barDataList)
+            barDataset.addGroupData("Group:$it", barDataList)
         }
         return barDataset
     }

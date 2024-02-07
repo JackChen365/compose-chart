@@ -20,8 +20,8 @@ import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
-import me.jack.compose.chart.model.ChartDataset
-import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.ChartDataset
+import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.isHorizontal
@@ -30,7 +30,7 @@ class BubbleSpec(
     val maxRadius: Dp = 40.dp,
 )
 
-val bubbleChartContent: @Composable SingleChartScope<BubbleData>.() -> Unit = {
+val BubbleChartContent: @Composable SingleChartScope<BubbleData>.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
     ChartIndicatorComponent()
@@ -63,25 +63,24 @@ fun BubbleChart(
     bubbleSpec: BubbleSpec = BubbleSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
     tapGestures: TapGestures<BubbleData> = TapGestures(),
-    content: @Composable SingleChartScope<BubbleData>.() -> Unit = bubbleChartContent
+    content: @Composable SingleChartScope<BubbleData>.() -> Unit = BubbleChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartDataset,
-        tapGestures = tapGestures,
-        contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(
                 state = rememberScrollState(),
                 orientation = contentMeasurePolicy.orientation
             )
             .zoom(),
-        content = content,
-        chartContent = {
-            BubbleComponent(bubbleSpec)
-            BubbleMarkerComponent()
-        }
-    )
+        tapGestures = tapGestures,
+        contentMeasurePolicy = contentMeasurePolicy,
+        chartDataset = chartDataset,
+        content = content
+    ) {
+        BubbleComponent(bubbleSpec)
+        BubbleMarkerComponent()
+    }
 }
 
 @Composable

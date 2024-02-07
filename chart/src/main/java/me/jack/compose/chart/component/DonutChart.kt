@@ -16,10 +16,10 @@ import me.jack.compose.chart.context.ChartContext
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.measure.boxBoxChartContentMeasurePolicy
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.PieData
 import me.jack.compose.chart.model.SimplePieData
-import me.jack.compose.chart.model.sumOf
+import me.jack.compose.chart.scope.sumOf
 import me.jack.compose.chart.scope.DonutChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
@@ -42,11 +42,12 @@ fun DonutChart(
     tapGestures: TapGestures<DonutData> = TapGestures(),
     content: @Composable SingleChartScope<DonutData>.() -> Unit = simpleChartContent
 ) {
-    SingleChartLayout(modifier = modifier,
-        chartDataset = chartDataset,
+    SingleChartLayout(
+        modifier = modifier,
+        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
         tapGestures = tapGestures,
         contentMeasurePolicy = boxBoxChartContentMeasurePolicy(),
-        chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() }),
+        chartDataset = chartDataset,
         content = content
     ) {
         DonutComponent(spec = spec)

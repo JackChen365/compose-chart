@@ -17,9 +17,9 @@ import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.measure.fixedVerticalContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.SimpleBubbleData
-import me.jack.compose.chart.model.rememberChartDataGroup
+import me.jack.compose.chart.scope.rememberChartDataGroup
 import kotlin.random.Random
 
 class BubbleDemos {

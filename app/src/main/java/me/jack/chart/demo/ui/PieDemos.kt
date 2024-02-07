@@ -14,11 +14,11 @@ import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.component.PieChart
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.PieData
-import me.jack.compose.chart.model.SINGLE_GROUP_NAME
+import me.jack.compose.chart.scope.SINGLE_GROUP_NAME
 import me.jack.compose.chart.model.SimplePieData
-import me.jack.compose.chart.model.rememberChartDataGroup
+import me.jack.compose.chart.scope.rememberChartDataGroup
 import kotlin.random.Random
 
 class PieDemos {

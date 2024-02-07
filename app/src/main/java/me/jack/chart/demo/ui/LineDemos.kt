@@ -34,13 +34,13 @@ import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.fixedOverlayContentMeasurePolicy
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SimpleLineData
-import me.jack.compose.chart.model.forEachGroup
-import me.jack.compose.chart.model.rememberChartDataGroup
-import me.jack.compose.chart.model.rememberChartMutableDataGroup
-import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.forEachGroup
+import me.jack.compose.chart.scope.rememberChartDataGroup
+import me.jack.compose.chart.scope.rememberChartMutableDataGroup
+import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
@@ -128,7 +128,7 @@ class LineDemos {
                                 )
                             )
                         }
-                        dataset.addChartGroupData(
+                        dataset.addGroupData(
                             chartGroup = "Group${groupCounter++}",
                             chartData = newChartGroupData
                         )
@@ -139,7 +139,7 @@ class LineDemos {
                 Button(
                     onClick = {
                         if (0 < groupCounter) {
-                            dataset.removeChartGroupData(
+                            dataset.removeGroupData(
                                 chartGroup = "Group${--groupCounter}"
                             )
                         }
@@ -151,7 +151,7 @@ class LineDemos {
                     onClick = {
                         dataset.forEachGroup { chartGroup ->
                             val last = dataset[chartGroup].lastOrNull()
-                            dataset.addChartData(
+                            dataset.addData(
                                 chartGroup = chartGroup,
                                 chartData = SimpleLineData(
                                     value = Random.nextInt(30, 100).toFloat(),
@@ -172,7 +172,7 @@ class LineDemos {
                     onClick = {
                         dataset.forEachGroup { chartGroup ->
                             val dataList = dataset[chartGroup]
-                            dataset.removeChartData(
+                            dataset.removeData(
                                 chartGroup = chartGroup,
                                 index = dataList.lastIndex
                             )

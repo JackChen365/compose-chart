@@ -31,9 +31,9 @@ import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.CandleData
-import me.jack.compose.chart.model.asChartDataset
-import me.jack.compose.chart.model.maxOf
-import me.jack.compose.chart.model.minOf
+import me.jack.compose.chart.scope.asChartDataset
+import me.jack.compose.chart.scope.maxOf
+import me.jack.compose.chart.scope.minOf
 import me.jack.compose.chart.scope.CandleStickChartScope
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.SingleChartScope
@@ -46,7 +46,7 @@ class CandleStickSpec(
     val stackLineSize: Dp = 2.dp,
 )
 
-val cancelStickChartContent: @Composable SingleChartScope<CandleData>.() -> Unit =
+val CancelStickChartContent: @Composable SingleChartScope<CandleData>.() -> Unit =
     {
         CandleStickLeftSideLabel()
         ChartGridDividerComponent()
@@ -81,14 +81,11 @@ fun CandleStickChart(
     candleStickSize: Dp = 32.dp,
     spec: CandleStickSpec = CandleStickSpec(),
     tapGestures: TapGestures<CandleData> = TapGestures(),
-    content: @Composable SingleChartScope<CandleData>.() -> Unit = cancelStickChartContent
+    content: @Composable SingleChartScope<CandleData>.() -> Unit = CancelStickChartContent
 ) {
     val contentMeasurePolicy = fixedContentMeasurePolicy(candleStickSize.toPx())
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartData.asChartDataset(),
-        tapGestures = tapGestures,
-        contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext
             .chartInteraction(
                 remember { MutableInteractionSource() }
@@ -96,12 +93,14 @@ fun CandleStickChart(
                 orientation = contentMeasurePolicy.orientation,
                 state = rememberScrollState()
             ).zoom(),
-        content = content,
-        chartContent = {
-            CandleStickComponent(spec)
-            CandleDataMarkerComponent()
-        }
-    )
+        tapGestures = tapGestures,
+        contentMeasurePolicy = contentMeasurePolicy,
+        chartDataset = chartData.asChartDataset(),
+        content = content
+    ) {
+        CandleStickComponent(spec)
+        CandleDataMarkerComponent()
+    }
 }
 
 @Composable

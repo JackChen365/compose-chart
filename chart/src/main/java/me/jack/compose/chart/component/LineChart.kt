@@ -25,9 +25,9 @@ import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
-import me.jack.compose.chart.model.maxOf
+import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
@@ -51,7 +51,7 @@ class CurveLineSpec(
     val style: DrawStyle = Fill
 )
 
-val lineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
+val LineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
     ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
@@ -59,7 +59,7 @@ val lineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
     ChartContent()
 }
 
-val curveLineChartContent: @Composable LineChartScope.() -> Unit = {
+val CurveLineChartContent: @Composable LineChartScope.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
     ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
@@ -93,16 +93,16 @@ fun LineChart(
     lineSpec: LineSpec = LineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable SingleChartScope<LineData>.() -> Unit = lineChartContent
+    content: @Composable SingleChartScope<LineData>.() -> Unit = LineChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartDataset,
-        tapGestures = tapGestures,
-        contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
             .zoom(),
+        tapGestures = tapGestures,
+        contentMeasurePolicy = contentMeasurePolicy,
+        chartDataset = chartDataset,
         content = content
     ) {
         ChartLineComponent(lineSpec = lineSpec)
@@ -217,12 +217,12 @@ fun SimpleCurveLineChart(
 ) {
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartDataset,
-        tapGestures = tapGestures,
-        contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
             .zoom(),
+        tapGestures = tapGestures,
+        contentMeasurePolicy = contentMeasurePolicy,
+        chartDataset = chartDataset,
         content = { content() }
     ) {
         CurveLineComponent(lineSpec)
@@ -237,25 +237,24 @@ fun CurveLineChart(
     lineSpec: CurveLineSpec = CurveLineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
-    content: @Composable LineChartScope.() -> Unit = curveLineChartContent
+    content: @Composable LineChartScope.() -> Unit = CurveLineChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
-        chartDataset = chartDataset,
-        tapGestures = tapGestures,
-        contentMeasurePolicy = contentMeasurePolicy,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(
                 orientation = contentMeasurePolicy.orientation,
                 state = rememberScrollState()
             )
             .zoom(),
-        content = content,
-        chartContent = {
-            CurveLineComponent(lineSpec)
-            LineMarkerComponent()
-        }
-    )
+        tapGestures = tapGestures,
+        contentMeasurePolicy = contentMeasurePolicy,
+        chartDataset = chartDataset,
+        content = content
+    ) {
+        CurveLineComponent(lineSpec)
+        LineMarkerComponent()
+    }
 }
 
 @Composable

@@ -44,7 +44,8 @@ import me.jack.compose.chart.draw.interaction.tapLocation
 import me.jack.compose.chart.draw.interaction.tapState
 import me.jack.compose.chart.interaction.ChartPressInteraction
 import me.jack.compose.chart.interaction.asPressInteraction
-import me.jack.compose.chart.model.ChartDataset
+import me.jack.compose.chart.scope.ChartDataset
+import me.jack.compose.chart.scope.getChartGroupData
 import me.jack.compose.chart.scope.ChartDatasetAccessScope
 import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import me.jack.compose.chart.scope.SingleChartScope

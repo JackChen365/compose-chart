@@ -1,8 +1,9 @@
-package me.jack.compose.chart.model
+package me.jack.compose.chart.scope
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -17,8 +18,6 @@ import me.jack.compose.chart.animation.ChartIntAnimatableState
 import me.jack.compose.chart.animation.colorAnimatableState
 import me.jack.compose.chart.animation.floatAnimatableState
 import me.jack.compose.chart.animation.intAnimatableState
-import me.jack.compose.chart.scope.ChartDatasetAccessScope
-import me.jack.compose.chart.scope.ChartDatasetAccessScopeInstance
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -27,7 +26,7 @@ import kotlin.math.min
 
 const val SINGLE_GROUP_NAME = "#"
 fun <T> List<T>.asChartDataset(): ChartDataset<T> =
-    MutableChartDataset<T>().also { it.addChartGroupData(SINGLE_GROUP_NAME, this) }
+    MutableChartDataset<T>().also { it.addGroupData(SINGLE_GROUP_NAME, this) }
 
 @Composable
 fun <T> rememberSimpleChartDataset(): MutableChartDataset<T> {
@@ -65,7 +64,7 @@ class ChartDataGroupBuilder<T> {
     fun dataset(chartGroup: String, block: DatasetBuilder<T>.() -> Unit) {
         val datasetBuilder = DatasetBuilder<T>()
         block.invoke(datasetBuilder)
-        chartDataset.addChartGroupData(chartGroup = chartGroup, chartData = datasetBuilder.getDataset())
+        chartDataset.addGroupData(chartGroup = chartGroup, chartData = datasetBuilder.getDataset())
     }
 
     fun animatableDataset(
@@ -75,7 +74,7 @@ class ChartDataGroupBuilder<T> {
         block.invoke(datasetBuilder)
         val dataset = datasetBuilder.getDataset()
         val animatableItems = dataset.map { getAnimatableDelegateItem(scope, it) }
-        chartDataset.addChartGroupData(chartGroup = chartGroup, chartData = animatableItems)
+        chartDataset.addGroupData(chartGroup = chartGroup, chartData = animatableItems)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -342,6 +341,17 @@ inline fun <T> ChartDataset<T>.computeGroupTotalValues(
     return sumValueList
 }
 
+fun <T> ChartDataset<T>.getChartGroupData(currentIndex: Int): List<T> {
+    val chartGroupData = mutableListOf<T>()
+    forEachGroup { chartGroup ->
+        val item = dataset[chartGroup]?.get(currentIndex)
+        if (null != item) {
+            chartGroupData.add(item)
+        }
+    }
+    return chartGroupData
+}
+
 interface ChartDataset<T> {
     val dataset: Map<String, List<T>>
     val size: Int
@@ -355,13 +365,21 @@ interface ChartDataset<T> {
     operator fun get(key: String): List<T> {
         return dataset[key] ?: emptyList()
     }
-
-    fun transformDataset(action: (List<T>) -> List<T>)
-
-    fun getChartGroupData(currentIndex: Int): List<T>
 }
 
-open class MutableChartDataset<T> : ChartDataset<T> {
+interface MutableDataset<T> {
+    fun addGroupData(chartGroup: String, chartData: List<T>)
+
+    fun removeGroupData(chartGroup: String)
+
+    fun addData(chartGroup: String, chartData: T)
+
+    fun removeData(chartGroup: String, chartData: T)
+
+    fun removeData(chartGroup: String, index: Int)
+}
+
+open class MutableChartDataset<T> : ChartDataset<T>, MutableDataset<T> {
     private val internalMutableChartDataset = SnapshotStateMap<String, SnapshotStateList<T>>()
     override val dataset: Map<String, SnapshotStateList<T>>
         get() = internalMutableChartDataset
@@ -373,18 +391,7 @@ open class MutableChartDataset<T> : ChartDataset<T> {
     override val groupSize: Int
         get() = dataset.keys.size
 
-    override fun getChartGroupData(currentIndex: Int): List<T> {
-        val chartGroupData = ArrayList<T>()
-        forEachGroup { chartGroup ->
-            val item = dataset[chartGroup]?.get(currentIndex)
-            if (null != item) {
-                chartGroupData.add(item)
-            }
-        }
-        return chartGroupData
-    }
-
-    fun addChartGroupData(chartGroup: String, chartData: List<T>) {
+    override fun addGroupData(chartGroup: String, chartData: List<T>) {
         if (chartData is SnapshotStateList) {
             internalMutableChartDataset[chartGroup] = chartData
         } else {
@@ -397,33 +404,23 @@ open class MutableChartDataset<T> : ChartDataset<T> {
         }
     }
 
-    fun removeChartGroupData(chartGroup: String) {
+    override fun removeGroupData(chartGroup: String) {
         internalMutableChartDataset.remove(chartGroup)
         chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
 
-    fun addChartData(chartGroup: String, chartData: T) {
+    override fun addData(chartGroup: String, chartData: T) {
         internalMutableChartDataset[chartGroup]?.add(chartData)
         chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
 
-    fun removeChartData(chartGroup: String, chartData: T) {
+    override fun removeData(chartGroup: String, chartData: T) {
         internalMutableChartDataset[chartGroup]?.remove(chartData)
         chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
 
-    fun removeChartData(chartGroup: String, index: Int) {
+    override fun removeData(chartGroup: String, index: Int) {
         internalMutableChartDataset[chartGroup]?.removeAt(index)
-        chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
-    }
-
-    override fun transformDataset(action: (List<T>) -> List<T>) {
-        forEachGroup { groupName ->
-            val dataset = dataset[groupName]
-            if (null != dataset) {
-                internalMutableChartDataset[groupName] = action(dataset).toMutableStateList()
-            }
-        }
         chartDatasetSize = internalMutableChartDataset.values.maxOf { it.size }
     }
 }
