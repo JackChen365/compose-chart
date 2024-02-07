@@ -44,6 +44,7 @@ import me.jack.compose.chart.scope.rememberChartDataGroup
 import me.jack.compose.chart.scope.forEach
 import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.rememberMarkedChartDataset
+import me.jack.compose.chart.scope.rememberMaxValue
 import kotlin.random.Random
 
 class BarDemos {
@@ -133,9 +134,7 @@ class BarDemos {
         val markedChartDataset1 = rememberMarkedChartDataset()
         val markedChartDataset2 = rememberMarkedChartDataset()
         Column(modifier = Modifier) {
-            val maxValue = remember(barDataset) {
-                barDataset.maxOf { it.value }
-            }
+            val maxValue = barDataset.rememberMaxValue { it.value }
             BarChart(
                 modifier = Modifier.height(240.dp),
                 contentMeasurePolicy = fixedContentMeasurePolicy(

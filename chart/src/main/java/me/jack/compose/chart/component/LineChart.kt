@@ -34,7 +34,9 @@ import me.jack.compose.chart.scope.currentRange
 import me.jack.compose.chart.scope.fastForEachWithNext
 import me.jack.compose.chart.scope.isFirstIndex
 import me.jack.compose.chart.scope.isHorizontal
+import me.jack.compose.chart.scope.rememberMaxValue
 import kotlin.math.max
+import kotlin.system.measureTimeMillis
 
 private val DEFAULT_CROSS_AXIS_SIZE = 32.dp
 
@@ -54,7 +56,7 @@ class CurveLineSpec(
 val LineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
-    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartAverageAcrossRanksComponent { it.value }
     ChartIndicatorComponent()
     ChartContent()
 }
@@ -62,7 +64,7 @@ val LineChartContent: @Composable SingleChartScope<LineData>.() -> Unit = {
 val CurveLineChartContent: @Composable LineChartScope.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
-    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartAverageAcrossRanksComponent { it.value }
     ChartIndicatorComponent()
     ChartContent()
 }
@@ -134,9 +136,7 @@ fun SingleChartScope<LineData>.LineMarkerComponent() {
 fun SingleChartScope<LineData>.ChartLineComponent(
     lineSpec: LineSpec = LineSpec(),
 ) {
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.value }
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.value }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -267,9 +267,7 @@ fun SingleChartScope<LineData>.CurveLineComponent(
 @Composable
 private fun SingleChartScope<LineData>.HorizontalCurveLine(spec: CurveLineSpec) {
     val path = remember { Path() }
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.value }
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.value }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {

@@ -31,7 +31,7 @@ import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.fastForEachByIndex
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.isLastGroupIndex
-import me.jack.compose.chart.scope.maxOf
+import me.jack.compose.chart.scope.rememberMaxValue
 
 enum class BarStyle {
     Normal, Stack
@@ -40,7 +40,7 @@ enum class BarStyle {
 val BarChartContent: @Composable BarChartScope.() -> Unit = {
     ChartBorderComponent()
     ChartGridDividerComponent()
-    ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
+    ChartAverageAcrossRanksComponent { it.value }
     ChartIndicatorComponent()
     ChartContent()
 }
@@ -105,8 +105,8 @@ fun BarChart(
  */
 @Composable
 fun BarChartScope.BarComponent() {
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.value }
+    val maxValue = chartDataset.rememberMaxValue {
+        it.value
     }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
@@ -189,9 +189,7 @@ fun BarChartScope.BarStickMarkComponent(
     color: Color = MaterialTheme.colorScheme.primary,
     radius: Dp = 8.dp
 ) {
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.value }
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.value }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {

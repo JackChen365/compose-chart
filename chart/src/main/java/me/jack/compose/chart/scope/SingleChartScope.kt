@@ -264,7 +264,7 @@ inline fun <T> SingleChartScope<T>.fastForEach(
 ) {
     val range = currentRange
     ChartDatasetAccessScopeInstance.internalFirstVisibleItem = range.first
-    ChartDatasetAccessScopeInstance.internalLastVisibleItem = range.last
+    ChartDatasetAccessScopeInstance.internalLastVisibleItem = range.last + 1
     chartDataset.forEachGroup { chartGroup ->
         chartDataset.forEach(
             chartGroup = chartGroup,

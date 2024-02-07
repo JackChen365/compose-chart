@@ -8,8 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -22,18 +27,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import me.jack.compose.chart.animation.floatAnimatableState
 import me.jack.compose.chart.context.ChartScrollState
 import me.jack.compose.chart.context.isElementAvailable
 import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.draw.ChartCanvas
 import me.jack.compose.chart.scope.ChartAnchor
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.ChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.chartChildDivider
 import me.jack.compose.chart.scope.chartGroupDivider
 import me.jack.compose.chart.scope.chartGroupOffsets
 import me.jack.compose.chart.scope.isHorizontal
+import me.jack.compose.chart.scope.rememberMaxValue
 
 @Stable
 val pressedColor = Color(0XCCDCDCDC)
@@ -300,12 +309,12 @@ fun Modifier.chartCrossAxisSize(
 }
 
 @Composable
-fun SingleChartScope<*>.ChartAverageAcrossRanksComponent(
+fun <T> SingleChartScope<T>.ChartAverageAcrossRanksComponent(
     level: Int = 10,
     size: Dp = 32.dp,
-    maxValueEvaluator: () -> Float
+    maxValueEvaluator: (T) -> Float
 ) {
-    val maxValue = maxValueEvaluator()
+    val maxValue = chartDataset.rememberMaxValue(maxValueEvaluator)
     val textMeasurer = rememberTextMeasurer()
     ChartCanvas(
         modifier = Modifier

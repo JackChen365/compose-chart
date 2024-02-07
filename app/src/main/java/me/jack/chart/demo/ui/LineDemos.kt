@@ -24,26 +24,24 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import me.jack.compose.chart.component.ChartAverageAcrossRanksComponent
-import me.jack.compose.chart.component.ChartBorderComponent
-import me.jack.compose.chart.component.ChartGridDividerComponent
-import me.jack.compose.chart.component.ChartIndicatorComponent
 import me.jack.compose.chart.component.CurveLineChart
+import me.jack.compose.chart.component.CurveLineChartContent
 import me.jack.compose.chart.component.LineChart
+import me.jack.compose.chart.component.LineChartContent
 import me.jack.compose.chart.component.TapGestures
 import me.jack.compose.chart.component.onTap
 import me.jack.compose.chart.component.toPx
 import me.jack.compose.chart.measure.fixedOverlayContentMeasurePolicy
-import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
 import me.jack.compose.chart.model.SimpleLineData
+import me.jack.compose.chart.scope.ChartDataset
+import me.jack.compose.chart.scope.LineChartScope
+import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.forEachGroup
 import me.jack.compose.chart.scope.rememberChartDataGroup
 import me.jack.compose.chart.scope.rememberChartMutableDataGroup
-import me.jack.compose.chart.scope.maxOf
-import me.jack.compose.chart.scope.LineChartScope
-import me.jack.compose.chart.scope.fastForEach
 import kotlin.random.Random
+import kotlin.system.measureTimeMillis
 
 class LineDemos {
 
@@ -200,11 +198,7 @@ class LineDemos {
                 }
             ) {
                 LaunchAnimation(scope)
-                ChartBorderComponent()
-                ChartGridDividerComponent()
-                ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
-                ChartIndicatorComponent()
-                ChartContent()
+                LineChartContent()
             }
             CurveLineChart(
                 modifier = Modifier.height(240.dp),
@@ -215,11 +209,7 @@ class LineDemos {
                 }
             ) {
                 LaunchAnimation(scope)
-                ChartBorderComponent()
-                ChartGridDividerComponent()
-                ChartAverageAcrossRanksComponent { chartDataset.maxOf { it.value } }
-                ChartIndicatorComponent()
-                ChartContent()
+                CurveLineChartContent()
             }
         }
     }

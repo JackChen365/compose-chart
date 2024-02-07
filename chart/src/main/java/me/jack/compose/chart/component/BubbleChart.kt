@@ -25,6 +25,7 @@ import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.isHorizontal
+import me.jack.compose.chart.scope.rememberMaxValue
 
 class BubbleSpec(
     val maxRadius: Dp = 40.dp,
@@ -119,12 +120,8 @@ fun SingleChartScope<BubbleData>.BubbleMarkerComponent() {
 private fun SingleChartScope<BubbleData>.BubbleComponent(
     bubbleSpec: BubbleSpec = BubbleSpec()
 ) {
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.value }
-    }
-    val maxVolume = remember(chartDataset) {
-        chartDataset.maxOf { it.volume }
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.value }
+    val maxVolume = chartDataset.rememberMaxValue { it.volume }
     val volumeSize = bubbleSpec.maxRadius.toPx() / maxVolume
     ChartCanvas(
         modifier = Modifier.fillMaxSize()

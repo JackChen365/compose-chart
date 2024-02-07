@@ -38,6 +38,8 @@ import me.jack.compose.chart.scope.CandleStickChartScope
 import me.jack.compose.chart.scope.ChartAnchor
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
+import me.jack.compose.chart.scope.rememberMaxValue
+import me.jack.compose.chart.scope.rememberMinValue
 import kotlin.math.absoluteValue
 import kotlin.math.min
 
@@ -110,10 +112,10 @@ fun CandleStickChartScope.CandleStickComponent(
     val scrollState = chartContext.requireChartScrollState
     val candleStickWidth = spec.candleStickSize.toPx()
     val stickLineWidth = spec.stackLineSize.toPx()
+    val highestValue = chartDataset.rememberMaxValue { it.high }
     ChartCanvas(
         modifier = Modifier.fillMaxSize()
     ) {
-        val highestValue = chartDataset.maxOf { it.high }
         val candleBlockSize = size.height / highestValue
         var offset = -scrollState.firstVisibleItemOffset
         // we calculate the lastVisibleItem due to other places need it.
@@ -189,14 +191,14 @@ fun CandleStickChartScope.CandleDataMarkerComponent() {
 @Composable
 fun CandleStickChartScope.CandleStickLeftSideLabel() {
     val textMeasurer = rememberTextMeasurer()
+    val lowest = chartDataset.rememberMinValue { it.low }
+    val highest = chartDataset.rememberMaxValue { it.high }
     ChartCanvas(
         modifier = Modifier
             .anchor(ChartAnchor.Start)
             .widthIn(min = 42.dp)
             .fillMaxHeight()
     ) {
-        val lowest = chartDataset.minOf { it.low }
-        val highest = chartDataset.maxOf { it.high }
         var textLayoutResult = textMeasurer.measure(
             text = highest.toString(),
             style = TextStyle(color = Color.Black, fontSize = 16.sp)
@@ -229,9 +231,7 @@ fun CandleStickChartScope.CandleStickBarComponent(
     context: ChartContext = chartContext,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
-    val maxValue = remember(chartDataset) {
-        chartDataset.maxOf { it.high }
-    }
+    val maxValue = chartDataset.rememberMaxValue { it.high }
     ChartBox(
         modifier = Modifier
             .anchor(ChartAnchor.Bottom)

@@ -1,9 +1,10 @@
 package me.jack.compose.chart.scope
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -11,6 +12,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import me.jack.compose.chart.animation.ChartAnimatableState
 import me.jack.compose.chart.animation.ChartColorAnimatableState
 import me.jack.compose.chart.animation.ChartFloatAnimatableState
@@ -54,13 +57,42 @@ fun <T> rememberChartMutableDataGroup(block: ChartDataGroupBuilder<T>.() -> Unit
     }
 }
 
+@Composable
+inline fun <T> ChartDataset<T>.rememberMaxValue(
+    crossinline maxValueEvaluator: (T) -> Float
+): Float {
+    var maxValue by remember {
+        mutableFloatStateOf(0f)
+    }
+    LaunchedEffect(groupSize, size) {
+        launch(Dispatchers.Default) {
+            maxValue = maxOf(block = maxValueEvaluator)
+        }
+    }
+    return maxValue
+}
+
+@Composable
+inline fun <T> ChartDataset<T>.rememberMinValue(
+    crossinline minValueEvaluator: (T) -> Float
+): Float {
+    var minValue by remember {
+        mutableFloatStateOf(0f)
+    }
+    LaunchedEffect(groupSize, size) {
+        launch(Dispatchers.Default) {
+            minValue = minOf(block = minValueEvaluator)
+        }
+    }
+    return minValue
+}
+
 @DslMarker
 annotation class ChartDataGroupBuilderMarker
 
 @ChartDataGroupBuilderMarker
 class ChartDataGroupBuilder<T> {
     private val chartDataset: MutableChartDataset<T> = MutableChartDataset()
-
     fun dataset(chartGroup: String, block: DatasetBuilder<T>.() -> Unit) {
         val datasetBuilder = DatasetBuilder<T>()
         block.invoke(datasetBuilder)
@@ -276,6 +308,9 @@ inline fun <T> ChartDataset<T>.sumOf(
     return sumValue
 }
 
+/**
+ * Calculate the max value of the given ChartDataset
+ */
 inline fun <T> ChartDataset<T>.maxOf(
     start: Int = 0, end: Int = Int.MAX_VALUE, block: (T) -> Float
 ): Float {
