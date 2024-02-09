@@ -230,13 +230,14 @@ class IndicationSpec(
 
 @Composable
 fun ChartScope.ChartIndicatorComponent(
+    modifier: Modifier = Modifier,
     spec: IndicationSpec = IndicationSpec()
 ) {
     val scrollState = chartContext.requireChartScrollState
     val groupMainAxis = chartGroupOffsets
     val textMeasurer = rememberTextMeasurer()
     Canvas(
-        modifier = Modifier
+        modifier = modifier
             .clipToBounds()
             .background(color = spec.backgroundColor)
             .chartMainAxisIndicator(this, spec.size)

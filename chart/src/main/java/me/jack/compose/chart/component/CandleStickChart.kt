@@ -122,17 +122,6 @@ fun CandleStickChartScope.CandleStickComponent(
         var offset = -scrollState.firstVisibleItemOffset
         // we calculate the lastVisibleItemIndex due to other places need it.
         fastForEach { candleData ->
-            clickableRect(
-                topLeft = Offset(
-                    x = offset,
-                    y = 0f
-                ),
-                size = Size(width = childSize.mainAxis, height = size.height),
-                focusPoint = Offset(
-                    x = offset + childSize.mainAxis / 2,
-                    y = candleBlockSize * (candleData.open + candleData.close) / 2
-                )
-            )
             drawRect(
                 color = pressedColor.copy(alpha = 0f) whenPressedAnimateTo pressedColor,
                 topLeft = Offset(

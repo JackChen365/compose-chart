@@ -36,7 +36,7 @@ class DonutDemos {
                     )
                 )
             }
-            dataset.addGroupData("Group:$it", dataList)
+            dataset.add("Group:$it", dataList)
         }
         return dataset
     }

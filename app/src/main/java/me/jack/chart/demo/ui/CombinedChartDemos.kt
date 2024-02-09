@@ -44,7 +44,7 @@ class CombinedChartDemos {
             barDataset.forEach(chartGroup) { data ->
                 newDataset.add(SimpleLineData(value = data.value, color = data.color))
             }
-            dataset.addGroupData(chartGroup, newDataset)
+            dataset.add(chartGroup, newDataset)
         }
         return dataset
     }
@@ -63,7 +63,7 @@ class CombinedChartDemos {
                     )
                 )
             }
-            barDataset.addGroupData("Group:$it", barDataList)
+            barDataset.add("Group:$it", barDataList)
         }
         return barDataset
     }

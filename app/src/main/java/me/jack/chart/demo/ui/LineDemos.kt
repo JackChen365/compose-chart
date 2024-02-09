@@ -41,7 +41,6 @@ import me.jack.compose.chart.scope.forEachGroup
 import me.jack.compose.chart.scope.rememberChartDataGroup
 import me.jack.compose.chart.scope.rememberChartMutableDataGroup
 import kotlin.random.Random
-import kotlin.system.measureTimeMillis
 
 class LineDemos {
 
@@ -126,7 +125,7 @@ class LineDemos {
                                 )
                             )
                         }
-                        dataset.addGroupData(
+                        dataset.add(
                             chartGroup = "Group${groupCounter++}",
                             chartData = newChartGroupData
                         )
@@ -137,7 +136,7 @@ class LineDemos {
                 Button(
                     onClick = {
                         if (0 < groupCounter) {
-                            dataset.removeGroupData(
+                            dataset.remove(
                                 chartGroup = "Group${--groupCounter}"
                             )
                         }
@@ -149,7 +148,7 @@ class LineDemos {
                     onClick = {
                         dataset.forEachGroup { chartGroup ->
                             val last = dataset[chartGroup].lastOrNull()
-                            dataset.addData(
+                            dataset.add(
                                 chartGroup = chartGroup,
                                 chartData = SimpleLineData(
                                     value = Random.nextInt(30, 100).toFloat(),
@@ -170,7 +169,7 @@ class LineDemos {
                     onClick = {
                         dataset.forEachGroup { chartGroup ->
                             val dataList = dataset[chartGroup]
-                            dataset.removeData(
+                            dataset.remove(
                                 chartGroup = chartGroup,
                                 index = dataList.lastIndex
                             )
