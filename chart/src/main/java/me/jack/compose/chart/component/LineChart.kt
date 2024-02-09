@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
+import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
@@ -27,7 +28,6 @@ import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.model.LineData
-import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.LineChartScope
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.currentRange
@@ -36,7 +36,6 @@ import me.jack.compose.chart.scope.isFirstIndex
 import me.jack.compose.chart.scope.isHorizontal
 import me.jack.compose.chart.scope.rememberMaxValue
 import kotlin.math.max
-import kotlin.system.measureTimeMillis
 
 private val DEFAULT_CROSS_AXIS_SIZE = 32.dp
 
@@ -95,16 +94,21 @@ fun LineChart(
     lineSpec: LineSpec = LineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
+    scrollableState: ChartScrollableState? = null,
     content: @Composable SingleChartScope<LineData>.() -> Unit = LineChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
+            .scrollable(
+                orientation = contentMeasurePolicy.orientation,
+                scrollableState = rememberScrollState()
+            )
             .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
         chartDataset = chartDataset,
+        scrollableState = scrollableState,
         content = content
     ) {
         ChartLineComponent(lineSpec = lineSpec)
@@ -218,7 +222,10 @@ fun SimpleCurveLineChart(
     SingleChartLayout(
         modifier = modifier,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
+            .scrollable(
+                orientation = contentMeasurePolicy.orientation,
+                scrollableState = rememberScrollState()
+            )
             .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
@@ -237,6 +244,7 @@ fun CurveLineChart(
     lineSpec: CurveLineSpec = CurveLineSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy = fixedContentMeasurePolicy(DEFAULT_CROSS_AXIS_SIZE.toPx()),
     tapGestures: TapGestures<LineData> = TapGestures(),
+    scrollableState: ChartScrollableState? = null,
     content: @Composable LineChartScope.() -> Unit = CurveLineChartContent
 ) {
     SingleChartLayout(
@@ -244,11 +252,12 @@ fun CurveLineChart(
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(
                 orientation = contentMeasurePolicy.orientation,
-                state = rememberScrollState()
+                scrollableState = rememberScrollState()
             )
             .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
+        scrollableState = scrollableState,
         chartDataset = chartDataset,
         content = content
     ) {
@@ -332,14 +341,14 @@ private fun SingleChartScope<LineData>.HorizontalCurveLine(spec: CurveLineSpec) 
                     radius = 0f whenPressedAnimateTo spec.circleRadius.toPx(),
                     center = nextChildCenterOffset.copy(y = next.value * lineItemSize)
                 )
-                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, nextOffset.y)
-                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, size.height + strokeWidthPx)
                 val currentItem: LineData = currentItem()
+                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, nextOffset.y)
                 drawPath(
                     path = path,
                     color = currentItem.color,
                     style = Stroke(strokeWidthPx),
                 )
+                path.lineTo(nextOffset.x + childSize.mainAxis / 2 + strokeWidthPx, size.height + strokeWidthPx)
                 path.lineTo(nextOffset.x + childSize.mainAxis / 2, size.height)
                 path.lineTo(0f, size.height)
                 drawPath(

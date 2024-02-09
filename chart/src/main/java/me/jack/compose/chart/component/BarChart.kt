@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
+import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
@@ -71,15 +72,20 @@ fun BarChart(
     contentMeasurePolicy: ChartContentMeasurePolicy,
     chartDataset: ChartDataset<BarData>,
     tapGestures: TapGestures<BarData> = TapGestures(),
+    scrollableState: ChartScrollableState? = null,
     content: @Composable (BarChartScope.() -> Unit) = BarChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
-            .scrollable(orientation = contentMeasurePolicy.orientation, state = rememberScrollState())
+            .scrollable(
+                orientation = contentMeasurePolicy.orientation,
+                scrollableState = rememberScrollState()
+            )
             .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
+        scrollableState = scrollableState,
         chartDataset = chartDataset,
         content = content
     ) {

@@ -259,7 +259,7 @@ inline fun <T> ChartDataset<T>.forEach(
     action: ChartDatasetAccessScope.(T) -> Unit
 ) {
     val dataset = this[chartGroup]
-    var index = start
+    var index = max(0, start)
     val dataSize = min(size, end)
     ChartDatasetAccessScopeInstance.internalFirstVisibleItem = start
     ChartDatasetAccessScopeInstance.internalLastVisibleItem = dataSize

@@ -38,7 +38,7 @@ class FixedContentMeasurePolicy(
         groupIndex: Int,
         index: Int
     ): Offset {
-        return if (orientation.isHorizontal) {
+        val leftTopOffset = if (orientation.isHorizontal) {
             Offset(
                 x = (fixedChildSize + childDividerSize) * groupCount * index +
                         groupDividerSize * index +
@@ -53,6 +53,7 @@ class FixedContentMeasurePolicy(
                         (fixedChildSize + childDividerSize) * groupIndex,
             )
         }
+        return leftTopOffset
     }
 
     override val childSize: Size

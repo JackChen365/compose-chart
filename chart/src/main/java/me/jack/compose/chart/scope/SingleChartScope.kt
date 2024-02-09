@@ -113,8 +113,8 @@ val <T> SingleChartScope<T>.currentRange: IntRange
         var end = chartDataset.size
         val scrollState = chartContext.chartScrollState
         if (null != scrollState) {
-            start = scrollState.firstVisibleItem
-            end = scrollState.lastVisibleItem
+            start = scrollState.firstVisibleItemIndex
+            end = scrollState.lastVisibleItemIndex
         }
         return start until end
     }

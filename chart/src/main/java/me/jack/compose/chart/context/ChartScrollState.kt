@@ -1,11 +1,23 @@
 package me.jack.compose.chart.context
 
+import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.animateTo
+import androidx.compose.foundation.MutatePriority
+import androidx.compose.foundation.MutatorMutex
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.ScrollableState
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.Density
+import kotlinx.coroutines.coroutineScope
+import me.jack.compose.chart.debug.debugLog
 
 val ChartContext.requireChartScrollState: ChartScrollState
     get() = chartScrollState ?: error("Can not found the chart scroll state.")
@@ -15,19 +27,22 @@ val ChartContext.chartScrollState: ChartScrollState?
     get() = get(ChartScrollState)
 
 fun ChartContext.scrollable(
-    orientation: Orientation = Orientation.Horizontal, state: ScrollableState
+    scrollableState: ScrollableState,
+    orientation: Orientation = Orientation.Horizontal
 ): ChartContext {
-    return this + MutableChartScrollState(state, orientation)
+    return this + MutableChartScrollState(scrollableState, orientation)
 }
 
 internal class MutableChartScrollState(
-    override val state: ScrollableState, override val orientation: Orientation
+    override val state: ScrollableState,
+    override val orientation: Orientation
 ) : ChartScrollState {
     private var firstVisibleItemState = mutableIntStateOf(0)
     private var firstVisibleItemOffsetState = mutableFloatStateOf(0f)
     private var lastVisibleItemState = mutableIntStateOf(0)
     override var offset: Float by mutableFloatStateOf(0f)
-    override var firstVisibleItem: Int
+    override var density: Density = Density(1f, 1f)
+    override var firstVisibleItemIndex: Int
         set(value) {
             firstVisibleItemState.intValue = value
         }
@@ -40,17 +55,20 @@ internal class MutableChartScrollState(
         }
         get() = firstVisibleItemOffsetState.floatValue
 
-    override var lastVisibleItem: Int
+    override var lastVisibleItemIndex: Int
         set(value) {
             lastVisibleItemState.intValue = value
         }
         get() = lastVisibleItemState.intValue
+
+    override var itemCount: Int = 0
 }
 
 val Orientation.isHorizontal: Boolean
     get() = this == Orientation.Horizontal
 
 interface ChartScrollState : ChartContext.Element {
+
     companion object Key : ChartContext.Key<ChartScrollState>
 
     override val key: ChartContext.Key<*> get() = Key
@@ -59,10 +77,158 @@ interface ChartScrollState : ChartContext.Element {
     val orientation: Orientation
 
     var offset: Float
-    val firstVisibleItem: Int
+    var density: Density
+    val firstVisibleItemIndex: Int
     val firstVisibleItemOffset: Float
-    val lastVisibleItem: Int
+    val lastVisibleItemIndex: Int
+    val itemCount: Int
 
     val currentVisibleRange: IntRange
-        get() = firstVisibleItem until lastVisibleItem
+        get() = firstVisibleItemIndex..lastVisibleItemIndex
+}
+
+@Composable
+fun rememberScrollableState(): ChartScrollableState {
+    return remember {
+        ChartScrollableState()
+    }
+}
+
+@Composable
+fun rememberScrollDelegate(
+    chartScrollState: ChartScrollState,
+    targetItemOffset: (groupIndex: Int, index: Int) -> Float,
+    onDelta: (Float) -> Float
+): ChartScrollDelegate {
+    val lambdaState = rememberUpdatedState(onDelta)
+    val lambdaTargetItemOffset = rememberUpdatedState(targetItemOffset)
+    return remember {
+        DefaultChartScrollDelegate(
+            chartScrollState = chartScrollState,
+            targetItemOffset = lambdaTargetItemOffset.value,
+            onDelta = lambdaState.value
+        )
+    }
+}
+
+class ChartScrollableState : ScrollableState {
+    var chartScrollDelegate: ChartScrollDelegate? = null
+
+    private val scrollMutex = MutatorMutex()
+
+    private val isScrollingState = mutableStateOf(false)
+
+    private val scrollScope: ScrollScope = object : ScrollScope {
+        override fun scrollBy(pixels: Float): Float {
+            if (pixels.isNaN()) return 0f
+            return chartScrollDelegate?.onDelta?.invoke(pixels) ?: pixels
+        }
+    }
+
+    override suspend fun scroll(
+        scrollPriority: MutatePriority,
+        block: suspend ScrollScope.() -> Unit
+    ): Unit = coroutineScope {
+        scrollMutex.mutateWith(scrollScope, scrollPriority) {
+            isScrollingState.value = true
+            try {
+                block()
+            } finally {
+                isScrollingState.value = false
+            }
+        }
+    }
+
+    override fun dispatchRawDelta(delta: Float): Float {
+        return chartScrollDelegate?.onDelta?.invoke(delta) ?: delta
+    }
+
+    override val isScrollInProgress: Boolean
+        get() = isScrollingState.value
+
+    suspend fun scrollToItem(
+        groupIndex: Int,
+        index: Int,
+        scrollOffset: Float = 0f
+    ) {
+        val animationScrollDelegate = chartScrollDelegate ?: return
+        scroll {
+            with(animationScrollDelegate) {
+                scrollToItem(groupIndex, index, scrollOffset)
+            }
+        }
+    }
+
+    suspend fun animateScrollToItem(
+        groupIndex: Int,
+        index: Int,
+        scrollOffset: Float = 0f
+    ) {
+        val animationScrollDelegate = chartScrollDelegate ?: return
+        scroll {
+            with(animationScrollDelegate) {
+                animateScrollToItem(groupIndex, index, scrollOffset)
+            }
+        }
+    }
+}
+
+interface ChartScrollDelegate {
+    val chartScrollState: ChartScrollState
+    val targetItemOffset: (groupIndex: Int, index: Int) -> Float
+    val onDelta: (Float) -> Float
+
+    fun getTargetItemOffset(groupIndex: Int, index: Int, offset: Float): Float
+
+    suspend fun ScrollScope.scrollToItem(
+        groupIndex: Int,
+        index: Int,
+        scrollOffset: Float = 0f
+    )
+
+    suspend fun ScrollScope.animateScrollToItem(
+        groupIndex: Int,
+        index: Int,
+        itemOffset: Float = 0f
+    )
+}
+
+class DefaultChartScrollDelegate(
+    override val chartScrollState: ChartScrollState,
+    override val targetItemOffset: (groupIndex: Int, index: Int) -> Float,
+    override val onDelta: (Float) -> Float
+) : ChartScrollDelegate {
+    override fun getTargetItemOffset(groupIndex: Int, index: Int, offset: Float): Float =
+        targetItemOffset(groupIndex, index) + offset
+
+    override suspend fun ScrollScope.scrollToItem(groupIndex: Int, index: Int, scrollOffset: Float) {
+        val targetItemOffset = targetItemOffset(groupIndex, index)
+        scrollBy(-(targetItemOffset + scrollOffset))
+    }
+
+    override suspend fun ScrollScope.animateScrollToItem(
+        groupIndex: Int,
+        index: Int,
+        itemOffset: Float
+    ) {
+        require(index >= 0f) { "Index should be non-negative ($index)" }
+        val scrollOffset = chartScrollState.offset
+        val anim = AnimationState(scrollOffset)
+        var prevValue = scrollOffset
+        // the target item offset with current scroll offset
+        val target = scrollOffset - getTargetItemOffset(groupIndex, index, itemOffset)
+        anim.animateTo(
+            targetValue = target,
+            sequentialAnimation = (anim.velocity != 0f)
+        ) {
+            val delta = value - prevValue
+            debugLog { "Seeking by $delta (coercedValue = $value)" }
+            scrollBy(delta)
+            if (value == target) {
+                debugLog { "Seeking by $delta consumed:$delta coercedValue:$value target:$target" }
+                cancelAnimation()
+            }
+            prevValue += delta
+        }
+    }
 }

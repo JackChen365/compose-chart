@@ -57,7 +57,7 @@ class DonutDemos {
 
     @Preview
     @Composable
-    fun DonutChartPreview() {
+    fun DonutChartDemo() {
         val context = LocalContext.current
         Column {
             DonutChart(

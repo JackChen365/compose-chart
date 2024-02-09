@@ -26,7 +26,7 @@ class DrawAnimationDemos {
 
     @Preview
     @Composable
-    fun DrawElementPreview() {
+    fun DrawElementDemo() {
         val dataset = rememberChartDataGroup<LineData> {
             dataset(SINGLE_GROUP_NAME) {
                 items(1) {

@@ -47,7 +47,7 @@ class LineDemos {
 
     @Preview
     @Composable
-    fun LineChartPreview() {
+    fun LineChartDemo() {
         val dataset = rememberChartDataGroup<LineData> {
             repeat(3) {
                 val groupColor = Color(Random.nextInt(0, 255), Random.nextInt(0, 255), Random.nextInt(0, 255), 0xFF)
@@ -84,7 +84,7 @@ class LineDemos {
 
     @Preview
     @Composable
-    fun LineChartWithMutableDataPreview() {
+    fun LineChartWithMutableDataDemo() {
         var groupCounter by remember {
             mutableIntStateOf(0)
         }
@@ -185,7 +185,7 @@ class LineDemos {
 
     @Preview
     @Composable
-    fun LineDataAnimationPreview() {
+    fun LineDataAnimationDemo() {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
         Column {

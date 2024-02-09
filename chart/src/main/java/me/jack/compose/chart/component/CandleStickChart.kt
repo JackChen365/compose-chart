@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import me.jack.compose.chart.context.ChartContext
+import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.requireChartScrollState
 import me.jack.compose.chart.context.scrollable
@@ -31,11 +32,9 @@ import me.jack.compose.chart.draw.interaction.pressInteractionState
 import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.fixedContentMeasurePolicy
 import me.jack.compose.chart.model.CandleData
-import me.jack.compose.chart.scope.asChartDataset
-import me.jack.compose.chart.scope.maxOf
-import me.jack.compose.chart.scope.minOf
 import me.jack.compose.chart.scope.CandleStickChartScope
 import me.jack.compose.chart.scope.ChartAnchor
+import me.jack.compose.chart.scope.ChartDataset
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.rememberMaxValue
@@ -51,25 +50,25 @@ class CandleStickSpec(
 val CancelStickChartContent: @Composable SingleChartScope<CandleData>.() -> Unit =
     {
         CandleStickLeftSideLabel()
-        ChartGridDividerComponent()
-        ChartIndicatorComponent()
         ChartBorderComponent()
+        ChartIndicatorComponent()
+        ChartGridDividerComponent()
         ChartContent()
     }
 
 @Composable
 fun SimpleCandleStickChart(
     modifier: Modifier = Modifier,
-    chartData: List<CandleData>,
     candleStickSize: Dp = 32.dp,
+    chartDataset: ChartDataset<CandleData>,
     spec: CandleStickSpec = CandleStickSpec(),
     tapGestures: TapGestures<CandleData> = TapGestures(),
     content: @Composable SingleChartScope<CandleData>.() -> Unit = simpleChartContent
 ) {
     CandleStickChart(
         modifier = modifier,
-        chartData = chartData,
         candleStickSize = candleStickSize,
+        chartDataset = chartDataset,
         spec = spec,
         tapGestures = tapGestures,
         content = content
@@ -79,11 +78,12 @@ fun SimpleCandleStickChart(
 @Composable
 fun CandleStickChart(
     modifier: Modifier = Modifier,
-    chartData: List<CandleData>,
     candleStickSize: Dp = 32.dp,
+    chartDataset: ChartDataset<CandleData>,
     spec: CandleStickSpec = CandleStickSpec(),
     tapGestures: TapGestures<CandleData> = TapGestures(),
-    content: @Composable SingleChartScope<CandleData>.() -> Unit = CancelStickChartContent
+    scrollableState: ChartScrollableState? = null,
+    content: @Composable (SingleChartScope<CandleData>.() -> Unit) = CancelStickChartContent
 ) {
     val contentMeasurePolicy = fixedContentMeasurePolicy(candleStickSize.toPx())
     SingleChartLayout(
@@ -93,11 +93,13 @@ fun CandleStickChart(
                 remember { MutableInteractionSource() }
             ).scrollable(
                 orientation = contentMeasurePolicy.orientation,
-                state = rememberScrollState()
-            ).zoom(),
+                scrollableState = rememberScrollState()
+            )
+            .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
-        chartDataset = chartData.asChartDataset(),
+        scrollableState = scrollableState,
+        chartDataset = chartDataset,
         content = content
     ) {
         CandleStickComponent(spec)
@@ -118,7 +120,7 @@ fun CandleStickChartScope.CandleStickComponent(
     ) {
         val candleBlockSize = size.height / highestValue
         var offset = -scrollState.firstVisibleItemOffset
-        // we calculate the lastVisibleItem due to other places need it.
+        // we calculate the lastVisibleItemIndex due to other places need it.
         fastForEach { candleData ->
             clickableRect(
                 topLeft = Offset(
@@ -200,27 +202,24 @@ fun CandleStickChartScope.CandleStickLeftSideLabel() {
             .fillMaxHeight()
     ) {
         var textLayoutResult = textMeasurer.measure(
-            text = highest.toString(),
+            text = if (0 == chartDataset.size) "#" else highest.toString(),
             style = TextStyle(color = Color.Black, fontSize = 16.sp)
         )
         // at the top of the rect.
         drawText(
             textLayoutResult = textLayoutResult,
-            topLeft = Offset(
-                (size.width - textLayoutResult.size.width) / 2f,
-                textLayoutResult.size.height / 2f
-            )
+            topLeft = Offset((size.width - textLayoutResult.size.width) / 2f, 0f)
         )
         // at the bottom of the rect.
         textLayoutResult = textMeasurer.measure(
-            text = lowest.toString(),
+            text = if (0 == chartDataset.size) "#" else lowest.toString(),
             style = TextStyle(color = Color.Black, fontSize = 16.sp)
         )
         drawText(
             textLayoutResult = textLayoutResult,
             topLeft = Offset(
                 (size.width - textLayoutResult.size.width) / 2f,
-                size.height - textLayoutResult.size.height / 2f
+                size.height - textLayoutResult.size.height
             )
         )
     }

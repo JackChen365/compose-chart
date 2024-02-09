@@ -25,7 +25,7 @@ class PieDemos {
 
     @Preview
     @Composable
-    fun PieChartPreview() {
+    fun PieChartDemo() {
         val context = LocalContext.current
         Column {
             PieChart(

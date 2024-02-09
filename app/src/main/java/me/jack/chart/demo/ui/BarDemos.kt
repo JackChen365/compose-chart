@@ -50,7 +50,7 @@ import kotlin.random.Random
 class BarDemos {
     @Preview
     @Composable
-    fun BarChartPreview() {
+    fun BarChartDemo() {
         val barDataset = buildChartDataset()
         val context = LocalContext.current
         Column(modifier = Modifier) {
@@ -76,7 +76,7 @@ class BarDemos {
 
     @Preview
     @Composable
-    fun StackBarChartPreview() {
+    fun StackBarChartDemo() {
         val barDataset = buildChartDataset()
         val context = LocalContext.current
         Column(modifier = Modifier) {
@@ -112,7 +112,7 @@ class BarDemos {
 
     @Preview
     @Composable
-    fun BarMarkChart() {
+    fun BarMarkChartDemo() {
         val barDataset: ChartDataset<BarData> = rememberChartDataGroup {
             repeat(3) { chartIndex ->
                 dataset("Group:$chartIndex") {
@@ -214,7 +214,7 @@ class BarDemos {
 
     @Preview
     @Composable
-    fun AnimatableBarChart() {
+    fun AnimatableBarChartDemo() {
         val scope = rememberCoroutineScope()
         val barDataset = buildAnimatableChartDataset(scope = scope)
         val context = LocalContext.current

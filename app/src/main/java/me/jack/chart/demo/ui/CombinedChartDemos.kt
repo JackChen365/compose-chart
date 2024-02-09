@@ -75,11 +75,9 @@ class CombinedChartDemos {
         CombinedChart(
             modifier = Modifier.height(320.dp),
             chartContext = ChartContext
-                .scrollable(state = rememberScrollState())
+                .scrollable(rememberScrollState())
                 .chartInteraction(MutableInteractionSource()),
-            contentMeasurePolicy = fixedContentMeasurePolicy(
-                fixedRowSize = 32.dp.toPx()
-            ),
+            contentMeasurePolicy = fixedContentMeasurePolicy(fixedRowSize = 32.dp.toPx()),
             componentContent = {
                 val barDataset = buildBarChartDataset()
                 barChart(

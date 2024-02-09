@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import me.jack.compose.chart.context.ChartContext
+import me.jack.compose.chart.context.ChartScrollableState
 import me.jack.compose.chart.context.chartInteraction
 import me.jack.compose.chart.context.scrollable
 import me.jack.compose.chart.context.zoom
@@ -21,7 +22,6 @@ import me.jack.compose.chart.interaction.asPressInteraction
 import me.jack.compose.chart.measure.ChartContentMeasurePolicy
 import me.jack.compose.chart.model.BubbleData
 import me.jack.compose.chart.scope.ChartDataset
-import me.jack.compose.chart.scope.maxOf
 import me.jack.compose.chart.scope.SingleChartScope
 import me.jack.compose.chart.scope.fastForEach
 import me.jack.compose.chart.scope.isHorizontal
@@ -64,18 +64,20 @@ fun BubbleChart(
     bubbleSpec: BubbleSpec = BubbleSpec(),
     contentMeasurePolicy: ChartContentMeasurePolicy,
     tapGestures: TapGestures<BubbleData> = TapGestures(),
+    scrollableState: ChartScrollableState? = null,
     content: @Composable SingleChartScope<BubbleData>.() -> Unit = BubbleChartContent
 ) {
     SingleChartLayout(
         modifier = modifier,
         chartContext = ChartContext.chartInteraction(remember { MutableInteractionSource() })
             .scrollable(
-                state = rememberScrollState(),
+                scrollableState = rememberScrollState(),
                 orientation = contentMeasurePolicy.orientation
             )
             .zoom(),
         tapGestures = tapGestures,
         contentMeasurePolicy = contentMeasurePolicy,
+        scrollableState = scrollableState,
         chartDataset = chartDataset,
         content = content
     ) {

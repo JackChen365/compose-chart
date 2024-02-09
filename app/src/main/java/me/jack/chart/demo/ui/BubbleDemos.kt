@@ -45,7 +45,7 @@ class BubbleDemos {
 
     @Preview
     @Composable
-    fun BubbleChartPreview() {
+    fun BubbleChartDemo() {
         val context = LocalContext.current
         Column {
             BubbleChart(
